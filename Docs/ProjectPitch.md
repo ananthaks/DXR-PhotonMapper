@@ -2,9 +2,7 @@ DXR-PhotonMapper
 ======================
 
 **Anantha Srinivas**
-[LinkedIn](https://www.linkedin.com/in/anantha-srinivas-00198958/), [Twitter](https://twitter.com/an2tha)
-
-**Connie Chang**
+[LinkedIn](https://www.linkedin.com/in/anantha-srinivas-00198958/), [Twitter](https://twitter.com/an2tha)  |  **Connie Chang**
 [LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
 
 # Progressive Photon Mapping using DXR
@@ -12,6 +10,8 @@ DXR-PhotonMapper
 ![](images/dxr-seed.jpg)
 
 ## Inspiration
+
+Real-time rendering has become a reality thanks to NVIDIA's RTX GPU and Microsoft's DXR API. However, there is still a long way to go until these become prevalent across games. One of the possible application of this technology could be in Virtual Reality. Rendering in VR is a lot more complicated and hard considering that we have to render multi-view (which can be done through multi-pass or other efficient techniques such as multi-view rendering from Microsoft). This is where Photon Mapping can fully utilize our hardware. Since photon generation and light calculation is camera independent, we can reuse the same photon data for both the eye, possibly improving performance in VR. While this project solely focuses on implementing Photon Mapping using DirectX RayTracing, its use in VR could be a future application.
 
 ## Specific Goals of the project
 
