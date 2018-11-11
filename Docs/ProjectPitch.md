@@ -9,7 +9,7 @@ DXR-PhotonMapper
 
 # Progressive Photon Mapping using DXR
 
-![](images\dxr-seed.jpg)
+![](images/dxr-seed.jpg)
 
 ## Inspiration
 
@@ -22,7 +22,7 @@ DXR-PhotonMapper
 2) Ray tracing for color retrieval.
 
 ## Proposed Pipeline
-![](images\flow.png)
+![](images/flow.png)
 
 ## Milestones
 
