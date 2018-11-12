@@ -5,7 +5,7 @@ DXR-PhotonMapper
 [LinkedIn](https://www.linkedin.com/in/anantha-srinivas-00198958/), [Twitter](https://twitter.com/an2tha)  |  **Connie Chang**
 [LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
 
-# Progressive Photon Mapping using DXR
+# Photon Mapping using DXR
 
 ![](images/dxr-seed.jpg)
 
@@ -30,7 +30,7 @@ Real-time rendering has become a reality thanks to NVIDIA's RTX GPU and Microsof
 |----| -----|
 |11/19| Have an Initial DXR setup working|
 |11/26| Implement K-d trees for storing Photons and basic photon generation|
-|12/03| Implementation of Progressive photon mapping|
+|12/03| Implementation of photon mapping|
 |12/10| Final Renders and fine tuning|
 
 # References
