@@ -17,3 +17,5 @@ bld/
 Build_VS15/*
 
 .vs
+
+!tools/x64
