@@ -14,23 +14,7 @@
 #include "DXSample.h"
 #include "StepTimer.h"
 #include "RaytracingHlslCompat.h"
-
-namespace GlobalRootSignatureParams {
-    enum Value {
-        OutputViewSlot = 0,
-        AccelerationStructureSlot,
-        SceneConstantSlot,
-        VertexBuffersSlot,
-        Count 
-    };
-}
-
-namespace LocalRootSignatureParams {
-    enum Value {
-        CubeConstantSlot = 0,
-        Count 
-    };
-}
+#include "Common.h"
 
 // The sample supports both Raytracing Fallback Layer and DirectX Raytracing APIs. 
 // This is purely for demonstration purposes to show where the API differences are. 
