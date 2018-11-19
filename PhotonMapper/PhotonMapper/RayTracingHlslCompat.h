@@ -39,6 +39,7 @@ struct CubeConstantBuffer
 struct Vertex
 {
     XMFLOAT3 position;
+    XMFLOAT3 color;
     XMFLOAT3 normal;
 };
 

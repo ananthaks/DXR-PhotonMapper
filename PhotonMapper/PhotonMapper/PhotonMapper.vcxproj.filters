@@ -63,7 +63,6 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PMRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -87,7 +86,6 @@
     <ClCompile Include="PhotonMapperRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PMRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
@@ -95,8 +93,8 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Raytracing.hlsl" />
-    <FxCompile Include="shaders.hlsl">
-      <Filter>Source Files</Filter>
-    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="shaders.hlsl" />
   </ItemGroup>
 </Project>

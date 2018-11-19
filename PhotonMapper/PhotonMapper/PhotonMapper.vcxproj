@@ -170,7 +170,6 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="DirectXRaytracingHelper.h" />
     <ClInclude Include="HlslCompat.h" />
     <ClInclude Include="PhotonMapperRenderer.h" />
-    <ClInclude Include="PMRenderer.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="Win32Application.h" />
@@ -183,7 +182,6 @@ PrebuildCheck.bat</Command>
     <ClCompile Include="D3D12RaytracingSimpleLighting.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="PhotonMapperRenderer.cpp" />
-    <ClCompile Include="PMRenderer.cpp" />
     <ClCompile Include="Win32Application.cpp" />
     <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="Main.cpp" />

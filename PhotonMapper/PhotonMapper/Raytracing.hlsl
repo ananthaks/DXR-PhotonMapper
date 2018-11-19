@@ -63,6 +63,7 @@ struct RayPayload
 {
     float4 color;
     float4 hitPosition;
+    float4 extraInfo;
 };
 
 // Retrieve hit world position.
@@ -96,6 +97,8 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
     direction = normalize(world.xyz - origin);
 }
 
+
+
 inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex)
 {
     float4 clippingCoord = mul(float4(rayHitPosition, 1), g_sceneCB.viewProj);
@@ -107,14 +110,14 @@ inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 
 
 
 // Diffuse lighting calculation.
-float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal)
+float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal, float3 color)
 {
     float3 pixelToLight = normalize(g_sceneCB.lightPosition.xyz - hitPosition);
 
     // Diffuse contribution.
     float fNDotL = max(0.0f, dot(pixelToLight, normal));
 
-    return g_cubeCB.albedo * g_sceneCB.lightDiffuseColor * fNDotL;
+    return float4(color, 1.0) * g_sceneCB.lightDiffuseColor * fNDotL;
 }
 
 static const float PI = 3.14159265f;
@@ -156,81 +159,91 @@ uint wang_hash(uint seed)
     return seed;
 }
 
-/*
-[shader("raygeneration")]
-void MyRaygenShader()
+// Generate a photon direction for a given sample point
+inline void GeneratePhoton(float2 samplePoint, float2 sampleSpace, out float3 origin, out float3 rayDir)
 {
-    float3 rayDir;
-    float3 origin;
+    float2 normSample = samplePoint / sampleSpace;
+    rayDir = SquareToSphereUniform(normSample);
+    origin = g_sceneCB.lightPosition.xyz;
 
-    // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
-    GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
+    // Use PRNG to generate ray direction
+    rng_state = uint(wang_hash(samplePoint.x + sampleSpace.x * samplePoint.y));
+    float2 randomSample = float2(rand_xorshift() * png_01_convert, rand_xorshift() * png_01_convert);
+    rayDir = SquareToSphereUniform(randomSample);
+}
 
-    // Trace the ray.
-    // Set the ray's extents.
+inline void VisualizePhoton(RayPayload payload, float2 screenDims)
+{
+    // Get the Hit location of the photon
+    float3 hitPosition = payload.hitPosition.xyz;
+
+    // Find the Screen Space Coord for the photon
+    uint2 pixelPos;
+    GetPixelPosition(hitPosition, screenDims, pixelPos);
+
+    // Shadow Ray.
     RayDesc ray;
-    ray.Origin = origin;
-    ray.Direction = rayDir;
-    // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
-    // TMin should be kept small to prevent missing geometry at close contact areas.
+    ray.Origin = hitPosition;
+    ray.Direction = normalize(g_sceneCB.cameraPosition.xyz - hitPosition);
     ray.TMin = 0.001;
     ray.TMax = 10000.0;
-    RayPayload payload = { float4(0, 0, 0, 0) };
-    TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
-    // Write the raytraced color to the output texture.
-    RenderTarget[DispatchRaysIndex().xy] = payload.color;
-}*/
+    RayPayload shadowPayload = 
+    { 
+        float4(0, 0, 0, 0), // Hit Color
+        float4(0, 0, 0, 0), // Hit Location
+        float4(0, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
+    };
+
+    // Perform Main photon tracing
+    TraceRay(Scene, RAY_FLAG_FORCE_OPAQUE, ~0, 0, 1, 0, ray, shadowPayload);
+
+
+    if (shadowPayload.extraInfo.x == 0.0)
+    {
+        // Write the raytraced color to the output texture.
+        float2 tempPixel = pixelPos;
+        tempPixel /= screenDims;
+
+        RenderTarget[pixelPos] = payload.color;
+    }
+
+
+
+    
+}
 
 [shader("raygeneration")]
 void MyRaygenShader()
 {
     float2 samplePoint = DispatchRaysIndex().xy;
     float2 screenDims = DispatchRaysDimensions().xy;
-
-    samplePoint /= screenDims;
-
-    float3 rayDir = SquareToSphereUniform(samplePoint);
-    float3 origin = g_sceneCB.lightPosition.xyz;
-
-    // Use PRNG to generate ray direction
-    rng_state = uint(wang_hash(DispatchRaysIndex().x + DispatchRaysDimensions().x * DispatchRaysIndex().y));
-    samplePoint.x = rand_xorshift() * png_01_convert;
-    samplePoint.y = rand_xorshift() * png_01_convert;
-    rayDir = SquareToSphereUniform(samplePoint);
-
-    //float3 rayColor = (rayDir + 1.f) * 0.5f;
-    //RenderTarget[DispatchRaysIndex().xy] = float4(rayColor, 1);
-    //return;
     
+    // Photon Generation
+    float3 rayDir;
+    float3 origin;
+    GeneratePhoton(samplePoint, screenDims, origin, rayDir);
+
     // Trace the ray.
-    // Set the ray's extents.
     RayDesc ray;
     ray.Origin = origin;
     ray.Direction = rayDir;
-    // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
-    // TMin should be kept small to prevent missing geometry at close contact areas.
     ray.TMin = 0.001;
     ray.TMax = 10000.0;
 
+    // Initialize the payload
     RayPayload payload = 
     { 
-        float4(0, 0, 0, 0),
-        float4(0, 0, 0, 0)
+        float4(0, 0, 0, 0), // Hit Color
+        float4(0, 0, 0, 0), // Hit Location
+        float4(0, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
     };
+
+    // Perform Main photon tracing
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
-    float3 hitPosition = payload.hitPosition.xyz;
-
-    uint2 pixelPos;
-    GetPixelPosition(hitPosition, screenDims, pixelPos);
-
-    //pixelPos = clamp(pixelPos, uint2(0, 0), uint2(DispatchRaysDimensions().xy));
-
-    // Write the raytraced color to the output texture.
-    float2 tempPixel = pixelPos;
-    tempPixel /= screenDims;
-    RenderTarget[pixelPos] = payload.color;//float4(tempPixel, 0.0, 1.0);
+    // Render the photons on the screen
+    VisualizePhoton(payload, screenDims);
 }
 
 [shader("closesthit")]
@@ -259,12 +272,25 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
-    float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
+
+    // Retrieve corresponding vertex normals for the triangle vertices.
+    float3 vertexColors[3] = { 
+        Vertices[indices[0]].color, 
+        Vertices[indices[1]].color, 
+        Vertices[indices[2]].color 
+    };
+
+    // Compute the triangle's normal.
+    // This is redundant and done for illustration purposes 
+    // as all the per-vertex normals are the same and match triangle's normal in this sample. 
+    float3 triangleColor = HitAttribute(vertexColors, attr);
+
+    float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal, triangleColor);
     float4 color = g_sceneCB.lightAmbientColor + diffuseColor;
 
     payload.color = color;
-    //payload.color = g_cubeCB.albedo;
     payload.hitPosition = float4(hitPosition, 0.0);
+    payload.extraInfo.x = 1.0f;
 }
 
 [shader("miss")]
@@ -273,6 +299,7 @@ void MyMissShader(inout RayPayload payload)
     float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
     payload.color = background;
     payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
+    payload.extraInfo.x = 0.0f;
 }
 
 #endif // RAYTRACING_HLSL
