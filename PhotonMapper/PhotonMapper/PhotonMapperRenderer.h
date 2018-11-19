@@ -4,6 +4,7 @@
 #include "StepTimer.h"
 #include "RaytracingHlslCompat.h"
 #include "Common.h"
+#include "DirectXRaytracingHelper.h"
 
 
 // The sample supports both Raytracing Fallback Layer and DirectX Raytracing APIs. 
@@ -83,6 +84,10 @@ private:
     };
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
+
+    D3DBuffer m_indexBufferFloor;
+    D3DBuffer m_vertexBufferFloor;
+
 
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;

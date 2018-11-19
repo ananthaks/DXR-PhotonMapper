@@ -448,7 +448,11 @@ void PhotonMapperRenderer::BuildGeometry()
         18,17,19,
 
         22,20,21,
-        23,20,22
+        23,20,22,
+
+        // floor indices
+        27, 25, 24,
+        26, 25, 27
     };
 
     // Cube vertices positions and corresponding triangle normals.
@@ -483,6 +487,12 @@ void PhotonMapperRenderer::BuildGeometry()
     { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
     { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
     { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+
+    // floor vertices
+    { XMFLOAT3(-5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0) },
     };
 
     AllocateUploadBuffer(device, indices, sizeof(indices), &m_indexBuffer.resource);
@@ -493,6 +503,33 @@ void PhotonMapperRenderer::BuildGeometry()
     UINT descriptorIndexIB = CreateBufferSRV(&m_indexBuffer, sizeof(indices)/4, 0);
     UINT descriptorIndexVB = CreateBufferSRV(&m_vertexBuffer, ARRAYSIZE(vertices), sizeof(vertices[0]));
     ThrowIfFalse(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
+
+    /*
+    // Create floor plane
+    Index floor_indices[] =
+    {
+        3,1,0,
+        2,1,3
+    };
+
+    Vertex floor_vertices[] =
+    {
+    { XMFLOAT3(-5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+    };
+
+    
+    AllocateUploadBuffer(device, floor_indices, sizeof(floor_indices), &m_indexBufferFloor.resource);
+    AllocateUploadBuffer(device, floor_vertices, sizeof(floor_vertices), &m_vertexBufferFloor.resource);
+
+    // Vertex buffer is passed to the shader along with index buffer as a descriptor table.
+    // Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
+    UINT descriptorIndexIB_Floor = CreateBufferSRV(&m_indexBufferFloor, sizeof(floor_indices) / 4, 0);
+    UINT descriptorIndexVB_Floor = CreateBufferSRV(&m_vertexBufferFloor, ARRAYSIZE(floor_vertices), sizeof(floor_vertices[0]));
+    ThrowIfFalse(descriptorIndexVB_Floor == descriptorIndexIB_Floor + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
+    */
 }
 
 // Build acceleration structures needed for raytracing.
@@ -522,6 +559,14 @@ void PhotonMapperRenderer::BuildAccelerationStructures()
     // Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
     geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
+
+    //<vector<D3D12_RAYTRACING_GEOMETRY_DESC>, BottomLevelASType::Count> geometryDescs;
+
+    vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
+    geometryDescs.push_back(geometryDesc);
+
+
+
     // Get required sizes for an acceleration structure.
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 
@@ -529,9 +574,9 @@ void PhotonMapperRenderer::BuildAccelerationStructures()
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &bottomLevelInputs = bottomLevelBuildDesc.Inputs;
     bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     bottomLevelInputs.Flags = buildFlags;
-    bottomLevelInputs.NumDescs = 1;
+    bottomLevelInputs.NumDescs = static_cast<UINT>(geometryDescs.size());
     bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelInputs.pGeometryDescs = &geometryDesc;
+    bottomLevelInputs.pGeometryDescs = geometryDescs.data();
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = bottomLevelBuildDesc;
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &topLevelInputs = topLevelBuildDesc.Inputs;
@@ -954,6 +999,9 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 
     m_bottomLevelAccelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
+
+    m_indexBufferFloor.resource.Reset();
+    m_vertexBufferFloor.resource.Reset();
 
 }
 
