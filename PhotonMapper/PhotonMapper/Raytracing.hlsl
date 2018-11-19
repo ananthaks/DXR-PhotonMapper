@@ -198,8 +198,11 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
     // Perform Main photon tracing
     TraceRay(Scene, RAY_FLAG_FORCE_OPAQUE, ~0, 0, 1, 0, ray, shadowPayload);
 
+    float4 extraInfo = shadowPayload.extraInfo;
 
-    if (shadowPayload.extraInfo.x == 0.0)
+    int shadowHit = extraInfo.x;
+
+    if (shadowHit == 0)
     {
         // Write the raytraced color to the output texture.
         float2 tempPixel = pixelPos;
@@ -207,9 +210,6 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 
         RenderTarget[pixelPos] = payload.color;
     }
-
-
-
     
 }
 
@@ -290,7 +290,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     payload.color = color;
     payload.hitPosition = float4(hitPosition, 0.0);
-    payload.extraInfo.x = 1.0f;
+    payload.extraInfo = float4(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
 [shader("miss")]
@@ -299,7 +299,7 @@ void MyMissShader(inout RayPayload payload)
     float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
     payload.color = background;
     payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
-    payload.extraInfo.x = 0.0f;
+    payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 #endif // RAYTRACING_HLSL
