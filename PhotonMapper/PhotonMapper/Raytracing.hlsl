@@ -192,7 +192,7 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
     { 
         float4(0, 0, 0, 0), // Hit Color
         float4(0, 0, 0, 0), // Hit Location
-        float4(0, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
+        float4(0, 0, 0, 1), // Any extra information - Payload has to be 16 byte aligned
     };
 
     // Perform Main photon tracing
