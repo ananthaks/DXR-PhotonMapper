@@ -15,11 +15,14 @@
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
-RaytracingAccelerationStructure Scene : register(t0, space0);
+// Unordered Access view
 RWTexture2D<float4> RenderTarget : register(u0);
+
+RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
 StructuredBuffer<Vertex> Vertices : register(t2, space0);
 
+// Constant Buffer views
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
@@ -59,6 +62,7 @@ typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload
 {
     float4 color;
+    float4 hitPosition;
 };
 
 // Retrieve hit world position.
@@ -92,6 +96,16 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
     direction = normalize(world.xyz - origin);
 }
 
+inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex)
+{
+    float4 clippingCoord = mul(float4(rayHitPosition, 1), g_sceneCB.viewProj);
+    clippingCoord.xyz /= clippingCoord.z;
+
+    pixelIndex.x = ((clippingCoord.x + 1.0) / 2.0) * screenDim.x;
+    pixelIndex.y = ((1.0 - clippingCoord.y) / 2.0) * screenDim.y;
+}
+
+
 // Diffuse lighting calculation.
 float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal)
 {
@@ -103,12 +117,30 @@ float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal)
     return g_cubeCB.albedo * g_sceneCB.lightDiffuseColor * fNDotL;
 }
 
+static const float PI = 3.14159265f;
+inline float3 SquareToSphereUniform(float2 samplePoint)
+{
+    float radius = 1.f;
+
+    float phi = samplePoint.y * PI;
+    float theta = samplePoint.x * 2.f * PI;
+
+    float3 result;
+    result.x = radius * cos(theta) * sin(phi);
+    result.y = radius * cos(phi);
+    result.z = radius * sin(theta) * sin(phi);
+    return result;
+}
+
+
+
+/*
 [shader("raygeneration")]
 void MyRaygenShader()
 {
     float3 rayDir;
     float3 origin;
-    
+
     // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
     GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
 
@@ -126,6 +158,47 @@ void MyRaygenShader()
 
     // Write the raytraced color to the output texture.
     RenderTarget[DispatchRaysIndex().xy] = payload.color;
+}*/
+
+[shader("raygeneration")]
+void MyRaygenShader()
+{
+    float2 samplePoint = DispatchRaysIndex().xy;
+    float2 screenDims = DispatchRaysDimensions().xy;
+
+    samplePoint /= screenDims;
+
+    float3 rayDir = SquareToSphereUniform(samplePoint);
+    float3 origin = g_sceneCB.lightPosition.xyz;
+    
+    // Trace the ray.
+    // Set the ray's extents.
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = rayDir;
+    // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
+    // TMin should be kept small to prevent missing geometry at close contact areas.
+    ray.TMin = 0.001;
+    ray.TMax = 10000.0;
+
+    RayPayload payload = 
+    { 
+        float4(0, 0, 0, 0),
+        float4(0, 0, 0, 0)
+    };
+    TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
+
+    float3 hitPosition = payload.hitPosition.xyz;
+
+    uint2 pixelPos;
+    GetPixelPosition(hitPosition, screenDims, pixelPos);
+
+    //pixelPos = clamp(pixelPos, uint2(0, 0), uint2(DispatchRaysDimensions().xy));
+
+    // Write the raytraced color to the output texture.
+    float2 tempPixel = pixelPos;
+    tempPixel /= screenDims;
+    RenderTarget[pixelPos] = payload.color;//float4(tempPixel, 0.0, 1.0);
 }
 
 [shader("closesthit")]
@@ -157,7 +230,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float4 diffuseColor = CalculateDiffuseLighting(hitPosition, triangleNormal);
     float4 color = g_sceneCB.lightAmbientColor + diffuseColor;
 
-    payload.color = color;
+    //payload.color = color;
+    payload.color = g_cubeCB.albedo;
+    payload.hitPosition = float4(hitPosition, 0.0);
 }
 
 [shader("miss")]
@@ -165,6 +240,7 @@ void MyMissShader(inout RayPayload payload)
 {
     float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
     payload.color = background;
+    payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
 }
 
 #endif // RAYTRACING_HLSL

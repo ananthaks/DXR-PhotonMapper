@@ -24,6 +24,7 @@ typedef UINT16 Index;
 struct SceneConstantBuffer
 {
     XMMATRIX projectionToWorld;
+    XMMATRIX viewProj;
     XMVECTOR cameraPosition;
     XMVECTOR lightPosition;
     XMVECTOR lightAmbientColor;
