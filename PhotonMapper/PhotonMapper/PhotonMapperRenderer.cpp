@@ -796,7 +796,7 @@ void PhotonMapperRenderer::OnUpdate()
     // Rotate the camera around Y axis.
     {
         float secondsToRotateAround = 24.0f;
-        float angleToRotateBy = 0.f;//360.0f * (elapsedTime / secondsToRotateAround);
+        float angleToRotateBy = 360.0f * (elapsedTime / secondsToRotateAround);
         XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(angleToRotateBy));
         m_eye = XMVector3Transform(m_eye, rotate);
         m_up = XMVector3Transform(m_up, rotate);

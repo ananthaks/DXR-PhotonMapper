@@ -3,6 +3,20 @@
 ## Goal
 An implementation of Progressive Photon Mapping using DXR
 
+![](Docs/images/Capture.PNG)
+
+## Current Progress (Milestone 1):
+1. Running DXR using Fallback Layer
+2. Photon Generation per light
+3. Photon Visualization.
+
+## Problems Faced:
+1. Running Fallback Layer on Titan V.
+2. Finding out the ray intersection miss after ray trace.
+3. Writing Photon Data out - options include unordered access view (textures).
+4. Parsing through the Photon data - kd-tree or use DXR.
+
+
 ## Acknowledgement
 The Titan V used for this project was donated by the NVIDIA Corporation.
 We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Titan V GPU used for this project
