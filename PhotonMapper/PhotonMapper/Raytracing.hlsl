@@ -200,7 +200,7 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 
     float4 extraInfo = shadowPayload.extraInfo;
 
-    int shadowHit = extraInfo.x;
+    int shadowHit = extraInfo[0];
 
     if (shadowHit == 0)
     {

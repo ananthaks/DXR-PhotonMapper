@@ -3,7 +3,7 @@
 ## Goal
 An implementation of Progressive Photon Mapping using DXR
 
-![](Docs/images/capture2.PNG)
+![](Docs/images/capture3.PNG)
 
 ![](Docs/images/cube_photons2.PNG)
 

@@ -453,7 +453,13 @@ void PhotonMapperRenderer::BuildGeometry()
 
         // floor indices
         27, 25, 24,
-        26, 25, 27
+        26, 25, 27,
+
+        // Left indices
+        31, 29, 28,
+        30, 29, 31,
+
+
     };
 
     // Cube vertices positions and corresponding triangle normals.
@@ -494,6 +500,12 @@ void PhotonMapperRenderer::BuildGeometry()
         { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
         { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
         { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0) },
+        
+        // Left vertices
+        { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(5.0f, 4.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(-5.0f, 4.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0) },
 
     };
 
