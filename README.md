@@ -3,7 +3,7 @@
 ## Goal
 An implementation of Progressive Photon Mapping using DXR
 
-![](Docs/images/cube_photons.PNG)
+![](Docs/images/cube_photons2.PNG)
 
 ## Current Progress (Milestone 1):
 1. Running DXR using Fallback Layer
