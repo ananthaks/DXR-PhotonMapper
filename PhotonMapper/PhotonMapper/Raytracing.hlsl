@@ -132,7 +132,29 @@ inline float3 SquareToSphereUniform(float2 samplePoint)
     return result;
 }
 
+// Functions for PRNG
+// http://www.reedbeta.com/blog/quick-and-easy-gpu-random-numbers-in-d3d11/
+static uint rng_state;
+static const float png_01_convert = (1.0f / 4294967296.0f);
+uint rand_xorshift()
+{
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= uint(rng_state << 13);
+    rng_state ^= uint(rng_state >> 17);
+    rng_state ^= uint(rng_state << 5);
+    return rng_state;
+}
 
+// Wang hash
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
 
 /*
 [shader("raygeneration")]
@@ -170,6 +192,16 @@ void MyRaygenShader()
 
     float3 rayDir = SquareToSphereUniform(samplePoint);
     float3 origin = g_sceneCB.lightPosition.xyz;
+
+    // Use PRNG to generate ray direction
+    rng_state = uint(wang_hash(DispatchRaysIndex().x + DispatchRaysDimensions().x * DispatchRaysIndex().y));
+    samplePoint.x = rand_xorshift() * png_01_convert;
+    samplePoint.y = rand_xorshift() * png_01_convert;
+    rayDir = SquareToSphereUniform(samplePoint);
+
+    //float3 rayColor = (rayDir + 1.f) * 0.5f;
+    //RenderTarget[DispatchRaysIndex().xy] = float4(rayColor, 1);
+    //return;
     
     // Trace the ray.
     // Set the ray's extents.

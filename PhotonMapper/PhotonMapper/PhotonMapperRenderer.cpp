@@ -793,6 +793,7 @@ void PhotonMapperRenderer::OnUpdate()
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
 
+    /*
     // Rotate the camera around Y axis.
     {
         float secondsToRotateAround = 24.0f;
@@ -812,6 +813,7 @@ void PhotonMapperRenderer::OnUpdate()
         const XMVECTOR& prevLightPosition = m_sceneCB[prevFrameIndex].lightPosition;
         m_sceneCB[frameIndex].lightPosition = XMVector3Transform(prevLightPosition, rotate);
     }
+    */
 }
 
 
