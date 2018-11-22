@@ -418,14 +418,18 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.extraInfo = float4(1.0f, depth, 0.0f, 0.0f);
 
     // Russian Roulette 
-    // TODO
-    float throughput_max = maxValue(throughput);
+    float throughput_max = maxValue(payload.throughput);
     if (rand_xorshift() < (1.f - throughput_max)) {
         return;
     }
 
 
-    // TODO
+    // Spawn another ray and trace it
+    RayDesc ray;
+    ray.Origin = hitPosition;
+    ray.Direction = wiW;
+    ray.TMin = 0.001;
+    ray.TMax = 10000.0;
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 }
 
