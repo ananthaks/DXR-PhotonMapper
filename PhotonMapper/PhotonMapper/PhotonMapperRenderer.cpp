@@ -25,6 +25,7 @@ const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
+    m_photonOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
     m_curRotationAngleRad(0.0f),
     m_isDxrSupported(false)
 {
@@ -404,6 +405,17 @@ void PhotonMapperRenderer::CreateRaytracingOutputResource()
     UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
     m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, m_descriptorSize);
+
+    // Create photon output
+    //auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_width); // *m_height * 2); //TODO change to max number of photons
+    auto photonDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, 16000, 2, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    // Use default heap properties from above
+    auto defaultHeapProperties2 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+    ThrowIfFailed(device->CreateCommittedResource(
+        &defaultHeapProperties2, D3D12_HEAP_FLAG_NONE, &photonDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_photonOutput)));
+    NAME_D3D12_OBJECT((m_photonOutput));
 }
 
 void PhotonMapperRenderer::CreateDescriptorHeap()
@@ -517,33 +529,6 @@ void PhotonMapperRenderer::BuildGeometry()
     UINT descriptorIndexIB = CreateBufferSRV(&m_indexBuffer, sizeof(indices)/4, 0);
     UINT descriptorIndexVB = CreateBufferSRV(&m_vertexBuffer, ARRAYSIZE(vertices), sizeof(vertices[0]));
     ThrowIfFalse(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
-
-    /*
-    // Create floor plane
-    Index floor_indices[] =
-    {
-        3,1,0,
-        2,1,3
-    };
-
-    Vertex floor_vertices[] =
-    {
-    { XMFLOAT3(-5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-    { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-    { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-    { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-    };
-
-    
-    AllocateUploadBuffer(device, floor_indices, sizeof(floor_indices), &m_indexBufferFloor.resource);
-    AllocateUploadBuffer(device, floor_vertices, sizeof(floor_vertices), &m_vertexBufferFloor.resource);
-
-    // Vertex buffer is passed to the shader along with index buffer as a descriptor table.
-    // Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
-    UINT descriptorIndexIB_Floor = CreateBufferSRV(&m_indexBufferFloor, sizeof(floor_indices) / 4, 0);
-    UINT descriptorIndexVB_Floor = CreateBufferSRV(&m_vertexBufferFloor, ARRAYSIZE(floor_vertices), sizeof(floor_vertices[0]));
-    ThrowIfFalse(descriptorIndexVB_Floor == descriptorIndexIB_Floor + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
-    */
 }
 
 // Build acceleration structures needed for raytracing.
@@ -1014,8 +999,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
     m_bottomLevelAccelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
 
-    m_indexBufferFloor.resource.Reset();
-    m_vertexBufferFloor.resource.Reset();
+
+    m_photonOutputResourceUAVDescriptorHeapIndex = UINT_MAX;
 
 }
 

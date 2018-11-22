@@ -85,10 +85,6 @@ private:
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
 
-    D3DBuffer m_indexBufferFloor;
-    D3DBuffer m_vertexBufferFloor;
-
-
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
@@ -97,6 +93,12 @@ private:
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
     UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
+
+    // Photon output
+    ComPtr<ID3D12Resource> m_photonOutput;
+    D3D12_GPU_DESCRIPTOR_HANDLE m_photonOutputResourceUAVGpuDescriptor;
+    UINT m_photonOutputResourceUAVDescriptorHeapIndex;
+
 
     // Shader tables
     static const wchar_t* c_hitGroupName;

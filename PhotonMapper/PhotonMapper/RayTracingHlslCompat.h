@@ -43,4 +43,10 @@ struct Vertex
     XMFLOAT3 normal;
 };
 
+struct Photon
+{
+    XMFLOAT3 position;
+    XMFLOAT3 color;
+};
+
 #endif // RAYTRACINGHLSLCOMPAT_H
