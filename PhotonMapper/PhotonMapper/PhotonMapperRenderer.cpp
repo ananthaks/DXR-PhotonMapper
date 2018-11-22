@@ -349,7 +349,7 @@ void PhotonMapperRenderer::CreateRaytracingPipelineStateObject()
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
     auto shaderConfig = raytracingPipeline.CreateSubobject<CD3D12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-    UINT payloadSize = 3 * sizeof(XMFLOAT4);    // float4 pixelColor
+    UINT payloadSize = 3 * sizeof(XMFLOAT4) + 2 * sizeof(XMFLOAT3);    // float4 pixelColor
     UINT attributeSize = sizeof(XMFLOAT2);  // float2 barycentrics
     shaderConfig->Config(payloadSize, attributeSize);
 
