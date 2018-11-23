@@ -25,7 +25,6 @@ const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
-    m_photonOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
     m_curRotationAngleRad(0.0f),
     m_isDxrSupported(false)
 {
@@ -239,7 +238,7 @@ void PhotonMapperRenderer::CreateRootSignatures()
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
         CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
-        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);  // 1 output texture
+        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);  // 1 output texture + a couple of GBuffers
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
@@ -405,17 +404,49 @@ void PhotonMapperRenderer::CreateRaytracingOutputResource()
     UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
     m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, m_descriptorSize);
+}
 
-    // Create photon output
-    //auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_width); // *m_height * 2); //TODO change to max number of photons
-    auto photonDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, 16000, 2, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+void PhotonMapperRenderer::CreateGBuffers()
+{
+    // There are 3 G Buffers defined here. All of them are unordered access views
+    // 1. Photon Position
+    // 2. Photon Color
+    // 3. Photon Normal (local space?)
 
-    // Use default heap properties from above
-    auto defaultHeapProperties2 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    // Might change later.
+    m_gBufferWidth = m_width;
+    m_gBufferHeight = m_height;
 
-    ThrowIfFailed(device->CreateCommittedResource(
-        &defaultHeapProperties2, D3D12_HEAP_FLAG_NONE, &photonDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_photonOutput)));
-    NAME_D3D12_OBJECT((m_photonOutput));
+    auto device = m_deviceResources->GetD3DDevice();
+    auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
+
+    // Create the output resource. The dimensions and format should match the swap-chain.
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_gBufferWidth, m_gBufferHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+    m_gBuffers.clear();
+
+    for (int i = 0; i < NumGBuffers; ++i)
+    {
+        GBuffer gBuffer = {};
+
+        ThrowIfFailed(device->CreateCommittedResource(
+            &defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&gBuffer.textureResource)));
+        NAME_D3D12_OBJECT(gBuffer.textureResource);
+
+        gBuffer.uavDescriptorHeapIndex = UINT_MAX;
+
+        D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
+        gBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, gBuffer.uavDescriptorHeapIndex);
+        D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        device->CreateUnorderedAccessView(gBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
+        gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
+
+        m_gBuffers.push_back(gBuffer);
+    }
+
+    
 }
 
 void PhotonMapperRenderer::CreateDescriptorHeap()
@@ -426,8 +457,9 @@ void PhotonMapperRenderer::CreateDescriptorHeap()
     // Allocate a heap for 5 descriptors:
     // 2 - vertex and index buffer SRVs
     // 1 - raytracing output texture SRV
+    // 3 - G Buffers
     // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 5; 
+    descriptorHeapDesc.NumDescriptors = 8; 
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -960,10 +992,35 @@ void PhotonMapperRenderer::CopyRaytracingOutputToBackbuffer()
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
+void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
+{
+    if (m_gBuffers.size() > gbufferIndex)
+    {
+        auto commandList= m_deviceResources->GetCommandList();
+        auto renderTarget = m_deviceResources->GetRenderTarget();
+
+        // Change State to Copy from Source
+        D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+        preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+        preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_gBuffers[gbufferIndex].textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+
+        // Perform the Copy
+        commandList->CopyResource(renderTarget, m_gBuffers[gbufferIndex].textureResource.Get());
+
+        // Change State back to Unordered access view
+        D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+        postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+        postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_gBuffers[gbufferIndex].textureResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
+    }
+}
+
 // Create resources that are dependent on the size of the main window.
 void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
+    CreateGBuffers();
     UpdateCameraMatrices();
 }
 
@@ -999,8 +1056,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
     m_bottomLevelAccelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
 
-
-    m_photonOutputResourceUAVDescriptorHeapIndex = UINT_MAX;
+    m_indexBufferFloor.resource.Reset();
+    m_vertexBufferFloor.resource.Reset();
 
 }
 
@@ -1028,7 +1085,15 @@ void PhotonMapperRenderer::OnRender()
 
     m_deviceResources->Prepare();
     DoRaytracing();
-    CopyRaytracingOutputToBackbuffer();
+
+    // This is turned off for now, in order to test whether G Buffer was actually getting filled.
+    //CopyRaytracingOutputToBackbuffer();
+
+    // The index Passed is the G buffer index in the collection - 
+    // 0 - pos
+    // 1 - color
+    // 2 - normal
+    CopyGBUfferToBackBuffer(0U);
 
     m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
 }

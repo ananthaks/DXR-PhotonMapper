@@ -15,8 +15,13 @@
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
-// Unordered Access view
+// Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
+
+// G-Buffers
+RWTexture2D<float4> GPhotonPos : register(u1);
+RWTexture2D<float4> GPhotonColor : register(u2);
+RWTexture2D<float4> GPhotonNorm : register(u3);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -208,7 +213,8 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
         float2 tempPixel = pixelPos;
         tempPixel /= screenDims;
 
-        RenderTarget[pixelPos] = payload.color;
+        //RenderTarget[pixelPos] = payload.color;
+        GPhotonPos[pixelPos] = payload.color;
     }
     
 }

@@ -38,6 +38,7 @@ public:
 
 private:
     static const UINT FrameCount = 3;
+    static const UINT NumGBuffers = 3;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
@@ -82,8 +83,24 @@ private:
         D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle;
         D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle;
     };
+
+    uint32_t m_gBufferWidth;
+    uint32_t m_gBufferHeight;
+    struct GBuffer
+    {
+        ComPtr<ID3D12Resource> textureResource;
+        D3D12_GPU_DESCRIPTOR_HANDLE uavGPUDescriptor;
+        UINT uavDescriptorHeapIndex;
+    };
+
+    std::vector<GBuffer> m_gBuffers;
+
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
+
+    D3DBuffer m_indexBufferFloor;
+    D3DBuffer m_vertexBufferFloor;
+
 
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
@@ -93,12 +110,6 @@ private:
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
     UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
-
-    // Photon output
-    ComPtr<ID3D12Resource> m_photonOutput;
-    D3D12_GPU_DESCRIPTOR_HANDLE m_photonOutputResourceUAVGpuDescriptor;
-    UINT m_photonOutputResourceUAVDescriptorHeapIndex;
-
 
     // Shader tables
     static const wchar_t* c_hitGroupName;
@@ -136,12 +147,14 @@ private:
     void CreateRaytracingPipelineStateObject();
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
+    void CreateGBuffers();
     void BuildGeometry();
     void BuildAccelerationStructures();
     void BuildShaderTables();
     void SelectRaytracingAPI(RaytracingAPI type);
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();
+    void CopyGBUfferToBackBuffer(UINT gbufferIndex);
     void CalculateFrameStats();
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);

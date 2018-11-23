@@ -63,6 +63,8 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="Primitive.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -86,6 +88,8 @@
     <ClCompile Include="PhotonMapperRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="Primitive.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
