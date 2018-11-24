@@ -24,10 +24,11 @@ const wchar_t* PhotonMapperRenderer::c_closestHitShaderName = L"MyClosestHitShad
 const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
-    DXSample(width, height, name),
-    m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
-    m_curRotationAngleRad(0.0f),
-    m_isDxrSupported(false)
+	DXSample(width, height, name),
+	m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
+	m_curRotationAngleRad(0.0f),
+	m_isDxrSupported(false),
+	m_calculatePhotonMap(false)
 {
     m_forceComputeFallback = false;
     SelectRaytracingAPI(RaytracingAPI::FallbackLayer);
@@ -83,6 +84,8 @@ void PhotonMapperRenderer::OnInit()
 
     CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
+
+	//m_calculatePhotonMap = true;
 }
 
 // Update camera matrices passed into the shader.
@@ -192,13 +195,12 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateRaytracingInterfaces();
 
     // Create root signatures for the shaders.
-    CreateRootSignatures();
+    //CreateFirstPassRootSignatures();
+    CreateSecondPassRootSignatures();
 
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
 	//CreateFirstPassPhotonPipelineStateObject();
-
-	// Creates a second pass photon mapping pipeline state object, which reads in the input photons and determines final color.
 	CreateSecondPassPhotonPipelineStateObject();
 
     // Create a heap for descriptors.
@@ -214,10 +216,13 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateConstantBuffers();
 
     // Build shader tables, which define shaders and their local root arguments.
-    BuildShaderTables();
+    //BuildFirstPassShaderTables();
+    BuildSecondPassShaderTables();
 
     // Create an output 2D texture to store the raytracing result to.
-    CreateRaytracingOutputResource();
+
+	// Why is this being called twice??
+    // CreateRaytracingOutputResource();
 }
 
 void PhotonMapperRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -238,13 +243,14 @@ void PhotonMapperRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_
     }
 }
 
-void PhotonMapperRenderer::CreateRootSignatures()
+void PhotonMapperRenderer::CreateFirstPassRootSignatures()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
+		// TODO: Remove the unnecessary UAV (RenderTarget) from first pass
         CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);  // 1 output texture + a couple of GBuffers
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
@@ -259,7 +265,7 @@ void PhotonMapperRenderer::CreateRootSignatures()
         rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
         
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
-        SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_raytracingGlobalRootSignature);
+        SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_firstPassGlobalRootSignature);
     }
 
     // Local Root Signature
@@ -269,8 +275,43 @@ void PhotonMapperRenderer::CreateRootSignatures()
         rootParameters[LocalRootSignatureParams::CubeConstantSlot].InitAsConstants(SizeOfInUint32(m_cubeCB), 1);
         CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
-        SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_raytracingLocalRootSignature);
+        SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_firstPassLocalRootSignature);
     }
+}
+
+void PhotonMapperRenderer::CreateSecondPassRootSignatures()
+{
+	auto device = m_deviceResources->GetD3DDevice();
+
+	// Global Root Signature
+	// This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
+	{
+		CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);  // 1 output texture + a couple of GBuffers
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+
+		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
+
+		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+
+		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+		rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+
+		rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+
+		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
+		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_secondPassGlobalRootSignature);
+	}
+
+	// Local Root Signature
+	// This is a root signature that enables a shader to have unique arguments that come from shader tables.
+	{
+		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
+		rootParameters[LocalRootSignatureParams::CubeConstantSlot].InitAsConstants(SizeOfInUint32(m_cubeCB), 1);
+		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
+		localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_secondPassLocalRootSignature);
+	}
 }
 
 // Create raytracing device and command list.
@@ -296,13 +337,13 @@ void PhotonMapperRenderer::CreateRaytracingInterfaces()
 
 // Local root signature and shader association
 // This is a root signature that enables a shader to have unique arguments that come from shader tables.
-void PhotonMapperRenderer::CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline)
+void PhotonMapperRenderer::CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig)
 {
     // Ray gen and miss shaders in this sample are not using a local root signature and thus one is not associated with them.
 
     // Local root signature to be used in a hit group.
     auto localRootSignature = raytracingPipeline->CreateSubobject<CD3D12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    localRootSignature->SetRootSignature(m_raytracingLocalRootSignature.Get());
+    localRootSignature->SetRootSignature(rootSig->Get());
     // Define explicit shader association for the local root signature. 
     {
         auto rootSignatureAssociation = raytracingPipeline->CreateSubobject<CD3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
@@ -362,12 +403,12 @@ void PhotonMapperRenderer::CreateFirstPassPhotonPipelineStateObject()
 
     // Local root signature and shader association
     // This is a root signature that enables a shader to have unique arguments that come from shader tables.
-    CreateLocalRootSignatureSubobjects(&raytracingPipeline);
+    CreateLocalRootSignatureSubobjects(&raytracingPipeline, &m_firstPassLocalRootSignature);
 
     // Global root signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     auto globalRootSignature = raytracingPipeline.CreateSubobject<CD3D12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    globalRootSignature->SetRootSignature(m_raytracingGlobalRootSignature.Get());
+    globalRootSignature->SetRootSignature(m_firstPassGlobalRootSignature.Get());
 
     // Pipeline config
     // Defines the maximum TraceRay() recursion depth.
@@ -384,11 +425,11 @@ void PhotonMapperRenderer::CreateFirstPassPhotonPipelineStateObject()
     // Create the state object.
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
-        ThrowIfFailed(m_fallbackDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_fallbackStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
+        ThrowIfFailed(m_fallbackDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_fallbackFirstPassStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
     }
     else // DirectX Raytracing
     {
-        ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
+        ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrFirstPassStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
     }
 }
 
@@ -429,12 +470,12 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 
 	// Local root signature and shader association
 	// This is a root signature that enables a shader to have unique arguments that come from shader tables.
-	CreateLocalRootSignatureSubobjects(&raytracingPipeline);
+	CreateLocalRootSignatureSubobjects(&raytracingPipeline, &m_secondPassLocalRootSignature);
 
 	// Global root signature
 	// This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
 	auto globalRootSignature = raytracingPipeline.CreateSubobject<CD3D12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-	globalRootSignature->SetRootSignature(m_raytracingGlobalRootSignature.Get());
+	globalRootSignature->SetRootSignature(m_secondPassGlobalRootSignature.Get());
 
 	// Pipeline config
 	// Defines the maximum TraceRay() recursion depth.
@@ -451,11 +492,11 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 	// Create the state object.
 	if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
 	{
-		ThrowIfFailed(m_fallbackDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_fallbackStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
+		ThrowIfFailed(m_fallbackDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_fallbackSecondPassStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
 	}
 	else // DirectX Raytracing
 	{
-		ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
+		ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrSecondPassStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
 	}
 }
 
@@ -534,7 +575,7 @@ void PhotonMapperRenderer::CreateDescriptorHeap()
     // 1 - raytracing output texture SRV
     // 3 - G Buffers
     // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 8; 
+    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers;
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -847,13 +888,15 @@ void PhotonMapperRenderer::BuildAccelerationStructures()
 
 // Build shader tables.
 // This encapsulates all shader records - shaders and the arguments for their local root signatures.
-void PhotonMapperRenderer::BuildShaderTables()
+void PhotonMapperRenderer::BuildFirstPassShaderTables()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
     void* rayGenShaderIdentifier;
     void* missShaderIdentifier;
     void* hitGroupShaderIdentifier;
+
+	m_firstPassShaderTableRes = {};
 
     auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
     {
@@ -866,13 +909,13 @@ void PhotonMapperRenderer::BuildShaderTables()
     UINT shaderIdentifierSize;
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
-        GetShaderIdentifiers(m_fallbackStateObject.Get());
+        GetShaderIdentifiers(m_fallbackFirstPassStateObject.Get());
         shaderIdentifierSize = m_fallbackDevice->GetShaderIdentifierSize();
     }
     else // DirectX Raytracing
     {
         ComPtr<ID3D12StateObjectPropertiesPrototype> stateObjectProperties;
-        ThrowIfFailed(m_dxrStateObject.As(&stateObjectProperties));
+        ThrowIfFailed(m_dxrFirstPassStateObject.As(&stateObjectProperties));
         GetShaderIdentifiers(stateObjectProperties.Get());
         shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
     }
@@ -883,7 +926,7 @@ void PhotonMapperRenderer::BuildShaderTables()
         UINT shaderRecordSize = shaderIdentifierSize;
         ShaderTable rayGenShaderTable(device, numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
         rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize));
-        m_rayGenShaderTable = rayGenShaderTable.GetResource();
+		m_firstPassShaderTableRes.m_rayGenShaderTable = rayGenShaderTable.GetResource();
     }
 
     // Miss shader table
@@ -892,7 +935,7 @@ void PhotonMapperRenderer::BuildShaderTables()
         UINT shaderRecordSize = shaderIdentifierSize;
         ShaderTable missShaderTable(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
         missShaderTable.push_back(ShaderRecord(missShaderIdentifier, shaderIdentifierSize));
-        m_missShaderTable = missShaderTable.GetResource();
+		m_firstPassShaderTableRes.m_missShaderTable = missShaderTable.GetResource();
     }
 
     // Hit group shader table
@@ -906,8 +949,76 @@ void PhotonMapperRenderer::BuildShaderTables()
         UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
         ShaderTable hitGroupShaderTable(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
         hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
-        m_hitGroupShaderTable = hitGroupShaderTable.GetResource();
+		m_firstPassShaderTableRes.m_hitGroupShaderTable = hitGroupShaderTable.GetResource();
     }
+}
+
+
+// Build shader tables.
+// This encapsulates all shader records - shaders and the arguments for their local root signatures.
+void PhotonMapperRenderer::BuildSecondPassShaderTables()
+{
+	auto device = m_deviceResources->GetD3DDevice();
+
+	void* rayGenShaderIdentifier;
+	void* missShaderIdentifier;
+	void* hitGroupShaderIdentifier;
+
+	m_secondPassShaderTableRes = {};
+
+	auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
+	{
+		rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_raygenShaderName);
+		missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_missShaderName);
+		hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(c_hitGroupName);
+	};
+
+	// Get shader identifiers.
+	UINT shaderIdentifierSize;
+	if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
+	{
+		GetShaderIdentifiers(m_fallbackSecondPassStateObject.Get());
+		shaderIdentifierSize = m_fallbackDevice->GetShaderIdentifierSize();
+	}
+	else // DirectX Raytracing
+	{
+		ComPtr<ID3D12StateObjectPropertiesPrototype> stateObjectProperties;
+		ThrowIfFailed(m_dxrFirstPassStateObject.As(&stateObjectProperties));
+		GetShaderIdentifiers(stateObjectProperties.Get());
+		shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+	}
+
+	// Ray gen shader table
+	{
+		UINT numShaderRecords = 1;
+		UINT shaderRecordSize = shaderIdentifierSize;
+		ShaderTable rayGenShaderTable(device, numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
+		rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize));
+		m_secondPassShaderTableRes.m_rayGenShaderTable = rayGenShaderTable.GetResource();
+	}
+
+	// Miss shader table
+	{
+		UINT numShaderRecords = 1;
+		UINT shaderRecordSize = shaderIdentifierSize;
+		ShaderTable missShaderTable(device, numShaderRecords, shaderRecordSize, L"MissShaderTable");
+		missShaderTable.push_back(ShaderRecord(missShaderIdentifier, shaderIdentifierSize));
+		m_secondPassShaderTableRes.m_missShaderTable = missShaderTable.GetResource();
+	}
+
+	// Hit group shader table
+	{
+		struct RootArguments {
+			CubeConstantBuffer cb;
+		} rootArguments;
+		rootArguments.cb = m_cubeCB;
+
+		UINT numShaderRecords = 1;
+		UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
+		ShaderTable hitGroupShaderTable(device, numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
+		hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
+		m_secondPassShaderTableRes.m_hitGroupShaderTable = hitGroupShaderTable.GetResource();
+	}
 }
 
 void PhotonMapperRenderer::SelectRaytracingAPI(RaytracingAPI type)
@@ -1015,7 +1126,7 @@ void PhotonMapperRenderer::ParseCommandLineArgs(WCHAR* argv[], int argc)
     }
 }
 
-void PhotonMapperRenderer::DoRaytracing()
+void PhotonMapperRenderer::DoFirstPassPhotonMapping()
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -1023,14 +1134,14 @@ void PhotonMapperRenderer::DoRaytracing()
     auto DispatchRays = [&](auto* commandList, auto* stateObject, auto* dispatchDesc)
     {
         // Since each shader table has only one shader record, the stride is same as the size.
-        dispatchDesc->HitGroupTable.StartAddress = m_hitGroupShaderTable->GetGPUVirtualAddress();
-        dispatchDesc->HitGroupTable.SizeInBytes = m_hitGroupShaderTable->GetDesc().Width;
+        dispatchDesc->HitGroupTable.StartAddress = m_firstPassShaderTableRes.m_hitGroupShaderTable->GetGPUVirtualAddress();
+        dispatchDesc->HitGroupTable.SizeInBytes = m_firstPassShaderTableRes.m_hitGroupShaderTable->GetDesc().Width;
         dispatchDesc->HitGroupTable.StrideInBytes = dispatchDesc->HitGroupTable.SizeInBytes;
-        dispatchDesc->MissShaderTable.StartAddress = m_missShaderTable->GetGPUVirtualAddress();
-        dispatchDesc->MissShaderTable.SizeInBytes = m_missShaderTable->GetDesc().Width;
+        dispatchDesc->MissShaderTable.StartAddress = m_firstPassShaderTableRes.m_missShaderTable->GetGPUVirtualAddress();
+        dispatchDesc->MissShaderTable.SizeInBytes = m_firstPassShaderTableRes.m_missShaderTable->GetDesc().Width;
         dispatchDesc->MissShaderTable.StrideInBytes = dispatchDesc->MissShaderTable.SizeInBytes;
-        dispatchDesc->RayGenerationShaderRecord.StartAddress = m_rayGenShaderTable->GetGPUVirtualAddress();
-        dispatchDesc->RayGenerationShaderRecord.SizeInBytes = m_rayGenShaderTable->GetDesc().Width;
+        dispatchDesc->RayGenerationShaderRecord.StartAddress = m_firstPassShaderTableRes.m_rayGenShaderTable->GetGPUVirtualAddress();
+        dispatchDesc->RayGenerationShaderRecord.SizeInBytes = m_firstPassShaderTableRes.m_rayGenShaderTable->GetDesc().Width;
         dispatchDesc->Width = m_width;
         dispatchDesc->Height = m_height;
         dispatchDesc->Depth = 1;
@@ -1046,7 +1157,7 @@ void PhotonMapperRenderer::DoRaytracing()
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
-    commandList->SetComputeRootSignature(m_raytracingGlobalRootSignature.Get());
+    commandList->SetComputeRootSignature(m_firstPassGlobalRootSignature.Get());
 
     // Copy the updated scene constant buffer to GPU.
     memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
@@ -1059,14 +1170,69 @@ void PhotonMapperRenderer::DoRaytracing()
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
         m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
-        DispatchRays(m_fallbackCommandList.Get(), m_fallbackStateObject.Get(), &dispatchDesc);
+        DispatchRays(m_fallbackCommandList.Get(), m_fallbackFirstPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
     {
         SetCommonPipelineState(commandList);
         commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-        DispatchRays(m_dxrCommandList.Get(), m_dxrStateObject.Get(), &dispatchDesc);
+        DispatchRays(m_dxrCommandList.Get(), m_dxrFirstPassStateObject.Get(), &dispatchDesc);
     }
+}
+
+void PhotonMapperRenderer::DoSecondPassPhotonMapping()
+{
+	auto commandList = m_deviceResources->GetCommandList();
+	auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
+
+	auto DispatchRays = [&](auto* commandList, auto* stateObject, auto* dispatchDesc)
+	{
+		// Since each shader table has only one shader record, the stride is same as the size.
+		dispatchDesc->HitGroupTable.StartAddress = m_secondPassShaderTableRes.m_hitGroupShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->HitGroupTable.SizeInBytes = m_secondPassShaderTableRes.m_hitGroupShaderTable->GetDesc().Width;
+		dispatchDesc->HitGroupTable.StrideInBytes = dispatchDesc->HitGroupTable.SizeInBytes;
+		dispatchDesc->MissShaderTable.StartAddress = m_secondPassShaderTableRes.m_missShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->MissShaderTable.SizeInBytes = m_secondPassShaderTableRes.m_missShaderTable->GetDesc().Width;
+		dispatchDesc->MissShaderTable.StrideInBytes = dispatchDesc->MissShaderTable.SizeInBytes;
+		dispatchDesc->RayGenerationShaderRecord.StartAddress = m_secondPassShaderTableRes.m_rayGenShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->RayGenerationShaderRecord.SizeInBytes = m_secondPassShaderTableRes.m_rayGenShaderTable->GetDesc().Width;
+		dispatchDesc->Width = m_width;
+		dispatchDesc->Height = m_height;
+		dispatchDesc->Depth = 1;
+		commandList->SetPipelineState1(stateObject);
+		commandList->DispatchRays(dispatchDesc);
+	};
+
+	auto SetCommonPipelineState = [&](auto* descriptorSetCommandList)
+	{
+		descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
+		// Set index and successive vertex buffer decriptor tables
+		commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_indexBuffer.gpuDescriptorHandle);
+		commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+	};
+
+	commandList->SetComputeRootSignature(m_secondPassGlobalRootSignature.Get());
+
+	// Copy the updated scene constant buffer to GPU.
+	memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
+	auto cbGpuAddress = m_perFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(m_mappedConstantData[0]);
+	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
+
+	// Bind the heaps, acceleration structure and dispatch rays.
+	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+	if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
+	{
+		SetCommonPipelineState(m_fallbackCommandList.Get());
+		m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
+		DispatchRays(m_fallbackCommandList.Get(), m_fallbackSecondPassStateObject.Get(), &dispatchDesc);
+	}
+	else // DirectX Raytracing
+	{
+		SetCommonPipelineState(commandList);
+		commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+		DispatchRays(m_dxrCommandList.Get(), m_dxrSecondPassStateObject.Get(), &dispatchDesc);
+	}
+
 }
 
 // Update the application state with the new resolution.
@@ -1131,6 +1297,11 @@ void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 void PhotonMapperRenderer::ReleaseWindowSizeDependentResources()
 {
     m_raytracingOutput.Reset();
+
+	for (GBuffer gBuffer : m_gBuffers)
+	{
+		gBuffer.textureResource.Reset();
+	}
 }
 
 // Release all resources that depend on the device.
@@ -1138,23 +1309,34 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 {
     m_fallbackDevice.Reset();
     m_fallbackCommandList.Reset();
-    m_fallbackStateObject.Reset();
-    m_raytracingGlobalRootSignature.Reset();
-    m_raytracingLocalRootSignature.Reset();
+    m_fallbackFirstPassStateObject.Reset();
+    m_firstPassGlobalRootSignature.Reset();
+    m_firstPassLocalRootSignature.Reset();
 
     m_dxrDevice.Reset();
     m_dxrCommandList.Reset();
-    m_dxrStateObject.Reset();
+    m_dxrFirstPassStateObject.Reset();
 
     m_descriptorHeap.Reset();
     m_descriptorsAllocated = 0;
     m_raytracingOutputResourceUAVDescriptorHeapIndex = UINT_MAX;
+
+	for (GBuffer gBuffer : m_gBuffers)
+	{
+		gBuffer.uavDescriptorHeapIndex = UINT_MAX;
+	}
+
     m_indexBuffer.resource.Reset();
     m_vertexBuffer.resource.Reset();
     m_perFrameConstants.Reset();
-    m_rayGenShaderTable.Reset();
-    m_missShaderTable.Reset();
-    m_hitGroupShaderTable.Reset();
+
+	m_firstPassShaderTableRes.m_rayGenShaderTable.Reset();
+	m_firstPassShaderTableRes.m_missShaderTable.Reset();
+	m_firstPassShaderTableRes.m_hitGroupShaderTable.Reset();
+	
+	m_secondPassShaderTableRes.m_rayGenShaderTable.Reset();
+	m_secondPassShaderTableRes.m_missShaderTable.Reset();
+	m_secondPassShaderTableRes.m_hitGroupShaderTable.Reset();
 
     m_bottomLevelAccelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
@@ -1187,16 +1369,27 @@ void PhotonMapperRenderer::OnRender()
     }
 
     m_deviceResources->Prepare();
-    DoRaytracing();
 
-    // This is turned off for now, in order to test whether G Buffer was actually getting filled.
-    //CopyRaytracingOutputToBackbuffer();
+	if (m_calculatePhotonMap)
+	{
+		DoFirstPassPhotonMapping();
 
-    // The index Passed is the G buffer index in the collection - 
-    // 0 - pos
-    // 1 - color
-    // 2 - normal
-    CopyGBUfferToBackBuffer(0U);
+		// This is turned off for now, in order to test whether G Buffer was actually getting filled.
+		//CopyRaytracingOutputToBackbuffer();
+
+		// The index Passed is the G buffer index in the collection - 
+		// 0 - pos
+		// 1 - color
+		// 2 - normal
+		// This functions essentially prepares the G-Buffer for the second pass
+		// CopyGBUfferToBackBuffer(0U);
+
+		m_calculatePhotonMap = false;
+	}
+
+	DoSecondPassPhotonMapping();
+	//CopyRaytracingOutputToBackbuffer();
+	CopyGBUfferToBackBuffer(0U);
 
     m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
 }
