@@ -101,13 +101,19 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
 
 
 
-inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex)
+inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex, out bool inRange)
 {
     float4 clippingCoord = mul(float4(rayHitPosition, 1), g_sceneCB.viewProj);
-    clippingCoord.xyz /= clippingCoord.z;
+    clippingCoord.xyz /= clippingCoord.w;
 
-    pixelIndex.x = ((clippingCoord.x + 1.0) / 2.0) * screenDim.x;
-    pixelIndex.y = ((1.0 - clippingCoord.y) / 2.0) * screenDim.y;
+    if (clippingCoord.z < 0.01f || clippingCoord.z > 1 || clippingCoord.x < -1 || clippingCoord.x > 1 || clippingCoord.y < -1 || clippingCoord.y > 1) {
+        inRange = false;
+        return;
+    }
+
+    inRange = true;
+    pixelIndex.x = ((clippingCoord.x + 1.0) * 0.5f) * screenDim.x;
+    pixelIndex.y = ((1.0 - clippingCoord.y) * 0.5f) * screenDim.y;
 }
 
 
@@ -123,14 +129,18 @@ float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal, float3 color)
 }
 
 // Sampling functions
-static const float PI = 3.14159265f;
+static const float PI = 3.1415926535897932384626422832795028841971f;
 static const float INV_PI = 0.318309886f;
+static const float TWO_PI = 6.2831853071795864769252867665590057683943f;
+static const float SQRT_OF_ONE_THIRD = 0.5773502691896257645091487805019574556476f;
+static const float EPSILON = 0.0001f;
+
 inline float3 SquareToSphereUniform(float2 samplePoint)
 {
     float radius = 1.f;
 
     float phi = samplePoint.y * PI;
-    float theta = samplePoint.x * 2.f * PI;
+    float theta = samplePoint.x * TWO_PI;
 
     float3 result;
     result.x = radius * cos(theta) * sin(phi);
@@ -241,12 +251,11 @@ uint wang_hash(uint seed)
 // Generate a photon direction for a given sample point
 inline void GeneratePhoton(float2 samplePoint, float2 sampleSpace, out float3 origin, out float3 rayDir)
 {
-    float2 normSample = samplePoint / sampleSpace;
-    rayDir = SquareToSphereUniform(normSample);
+    //float2 normSample = samplePoint / sampleSpace;
+    //rayDir = SquareToSphereUniform(normSample);
     origin = g_sceneCB.lightPosition.xyz;
 
     // Use PRNG to generate ray direction
-    rng_state = uint(wang_hash(samplePoint.x + sampleSpace.x * samplePoint.y));
     float2 randomSample = float2(rand_xorshift(), rand_xorshift());
     rayDir = SquareToSphereUniform(randomSample);
 }
@@ -258,20 +267,26 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 
     // Find the Screen Space Coord for the photon
     uint2 pixelPos;
-    GetPixelPosition(hitPosition, screenDims, pixelPos);
+    bool inRange;
+    GetPixelPosition(hitPosition, screenDims, pixelPos, inRange);
+
+    if (!inRange) {
+        return;
+    }
 
     // Shadow Ray.
     RayDesc ray;
     ray.Origin = hitPosition;
-    ray.Direction = normalize(g_sceneCB.cameraPosition.xyz - hitPosition);
+    //ray.Direction = normalize(g_sceneCB.cameraPosition.xyz - hitPosition);
+    ray.Direction = g_sceneCB.cameraPosition.xyz - hitPosition;
     ray.TMin = 0.001;
-    ray.TMax = 10000.0;
+    ray.TMax = 1.001;
 
     RayPayload shadowPayload = 
     { 
         float4(0, 0, 0, 0), // Hit Color
         float4(0, 0, 0, 0), // Hit Location
-        float4(0, 1, 0, 1), // Any extra information - Payload has to be 16 byte aligned
+        float4(-1, 1, 0, 1), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
         float3(0, 0, 0), // Throughput
         float3(0, 0, 0), // Direction
     };
@@ -299,6 +314,15 @@ void MyRaygenShader()
 {
     float2 samplePoint = DispatchRaysIndex().xy;
     float2 screenDims = DispatchRaysDimensions().xy;
+
+    // Set seed for PRNG
+    rng_state = uint(wang_hash(samplePoint.x + screenDims.x * samplePoint.y));
+
+
+    // Debug PRNG
+    //float rand = rand_xorshift();
+    //RenderTarget[samplePoint] = float4(rand, rand, rand, 1);
+    //return;
     
     // Photon Generation
     float3 rayDir;
@@ -319,9 +343,9 @@ void MyRaygenShader()
         //float4(0, 0, 0, 0), // Hit Color
         g_sceneCB.lightDiffuseColor, // Photon's starting color
         float4(0, 0, 0, 0), // Hit Location
-        float4(0, 5, 0, 0), // Any extra information - Payload has to be 16 byte aligned
+        float4(1, 5, 0, 0), // Any extra information - Payload has to be 16 byte aligned
         float3(1, 1, 1), // Throughput
-        float3(rayDir), // Direction
+        rayDir, // Direction
     };
 
     // Perform Main photon tracing
@@ -329,9 +353,45 @@ void MyRaygenShader()
 
     // Render the photons on the screen
     VisualizePhoton(payload, screenDims);
+    
 }
 
-inline float3 Lambert_Sample_f(in float3 wo, inout float3 wi, in float2 sample, inout float pdf, in float3 albedo) {
+// From hw 3
+inline float3 calculateRandomDirectionInHemisphere(in float3 normal) {
+
+    float up = sqrt(rand_xorshift()); // cos(theta)
+    float over = sqrt(1 - up * up); // sin(theta)
+    float around = rand_xorshift() * TWO_PI;
+
+    // Find a direction that is not the normal based off of whether or not the
+    // normal's components are all equal to sqrt(1/3) or whether or not at
+    // least one component is less than sqrt(1/3). Learned this trick from
+    // Peter Kutz.
+
+    float3 directionNotNormal;
+    if (abs(normal.x) < SQRT_OF_ONE_THIRD) {
+        directionNotNormal = float3(1, 0, 0);
+    }
+    else if (abs(normal.y) < SQRT_OF_ONE_THIRD) {
+        directionNotNormal = float3(0, 1, 0);
+    }
+    else {
+        directionNotNormal = float3(0, 0, 1);
+    }
+
+    // Use not-normal direction to generate two perpendicular directions
+    float3 perpendicularDirection1 =
+        normalize(cross(normal, directionNotNormal));
+    float3 perpendicularDirection2 =
+        normalize(cross(normal, perpendicularDirection1));
+
+    return up * normal
+        + cos(around) * over * perpendicularDirection1
+        + sin(around) * over * perpendicularDirection2;
+}
+
+
+inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, out float pdf, in float3 albedo) {
     wi = SquareToHemisphereCosine(sample);
     if (wo.z < 0) wi.z *= -1;
     wi = normalize(wi);
@@ -343,9 +403,14 @@ inline float3 Lambert_Sample_f(in float3 wo, inout float3 wi, in float2 sample, 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
+    int isShadow = payload.extraInfo.x;
+    if (isShadow == -1) {
+        return;
+    }
+
     int depth = payload.extraInfo.y; // Using [1] crashes...
     if (depth == 0) {
-        return;
+        //return;
     }
     depth--;
 
@@ -388,8 +453,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     // TODO We don't have UVs
     // Calculate tangent and bitangent of triangle using its points
+    /*
     float3 tangent = normalize(Vertices[indices[0]].position - hitPosition);
-    float3 bitangent = normalize(cross(triangleNormal, tangent));
+    float3 bitangent = normalize(cross(tangent, triangleNormal));
 
     // TODO make sure these are columns
     float3x3 tangentToWorld = float3x3(tangent, bitangent, triangleNormal);
@@ -399,30 +465,62 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // TODO Add more material types
     float2 randomSample = float2(rand_xorshift(), rand_xorshift());
     float3 woW = -payload.direction;
-    float3 wo = normalize(mul(worldToTangent, woW));
+    float3 wo = normalize(mul(woW, worldToTangent));
     float3 wi;
     float pdf;
 
     float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
 
-    float3 wiW = normalize(mul(tangentToWorld, wi));
+    float3 wiW = normalize(mul(wi, tangentToWorld));
+    */
 
-    // TODO Store photon
-    //VisualizePhoton(payload, DispatchRaysDimensions().xy); // Doesn't work....
-
-    float3 curr_throughput = f * AbsDot(triangleNormal, wiW);
-
-    payload.throughput = payload.throughput * curr_throughput;
-    payload.color = float4(payload.color * curr_throughput, 1);
-    payload.hitPosition = float4(hitPosition, 0.0);
-    payload.extraInfo = float4(1.0f, depth, 0.0f, 0.0f);
-
-    // Russian Roulette 
-    float throughput_max = maxValue(payload.throughput);
-    if (rand_xorshift() < (1.f - throughput_max)) {
+    
+    float3 f = INV_PI * triangleColor;
+    float3 wiW = normalize(calculateRandomDirectionInHemisphere(triangleNormal));
+    float d = dot(wiW, triangleNormal);
+    float pdf;
+    if (d < 0) {
+        pdf = 0;
+    } else {
+        pdf = INV_PI * d;
+    }
+    
+    if (pdf < EPSILON) {
         return;
     }
+    
 
+    // TODO Store photon
+    //float2 screenDims = {payload.extraInfo.z, payload.extraInfo.w};
+    //VisualizePhoton(payload, screenDims); // Doesn't work....
+
+    float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
+    float3 n_throughput = payload.throughput * curr_throughput;
+
+    /*
+    RayPayload payload_child =
+    {
+        //float4(float3(1, 1, 1) / (5 - depth), 1), // Hit Color
+        float4(payload.color * curr_throughput, 1), // Photon's starting color
+        float4(hitPosition, 1.0), // Hit Location
+        float4(1.f, depth, 0, 0), // Any extra information - Payload has to be 16 byte aligned
+        n_throughput, // Throughput
+        wiW, // Direction
+    };
+    */
+
+    payload.color = float4(payload.color * curr_throughput, 1); // Photon's starting color
+    payload.hitPosition = float4(hitPosition, 0.0); // Hit Location
+    payload.extraInfo = float4(1.0f, depth, 0, 0); // Any extra information - Payload has to be 16 byte aligned
+    payload.throughput = n_throughput; // Throughput
+    payload.direction = wiW; // Direction
+
+    // Russian Roulette 
+    float throughput_max = maxValue(n_throughput);
+    if (rand_xorshift() < (1.f - throughput_max)) {
+        //payload = payload_child;
+        return;
+    }
 
     // Spawn another ray and trace it
     RayDesc ray;
@@ -430,16 +528,22 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     ray.Direction = wiW;
     ray.TMin = 0.001;
     ray.TMax = 10000.0;
+
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
+    //payload = payload_child;
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-    float4 background = float4(0.0f, 0.2f, 0.4f, 1.0f);
-    payload.color = background;
-    payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
-    payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    int isShadow = payload.extraInfo.x;
+
+    if (isShadow == -1) {
+        float4 background = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        payload.color = background;
+        payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
+        payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
 }
 
 #endif // RAYTRACING_HLSL
