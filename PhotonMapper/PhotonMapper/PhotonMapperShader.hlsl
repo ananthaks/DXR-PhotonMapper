@@ -389,9 +389,44 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 	return INV_PI * albedo;
 }
 
+#define PHOTON_CLOSENESS 0.2f
+
+inline float3 ColorToWorld(float3 color)
+{
+	return ((color - float3(0.5f, 0.5f, 0.5f)) * (2.0f * MAX_SCENE_SIZE));
+}
+
 inline float4 GetAvgPhotonColor(float3 intersectionPoint)
 {
-    return float4(1.0, 0.0, 0.0, 1.0);
+	uint width, height, depth;
+	GPhotonPos.GetDimensions(width, height, depth);
+	
+	float4 color = float4(0.0, 0.0, 0.0, 0.0);
+	int numColors = 0;
+
+	for (int i = 0; i < width; ++i)
+	{
+		for (int j = 0; j < height; ++j)
+		{
+			for (int k = 0; k < depth; ++k)
+			{
+				uint3 index = uint3(i, j, k);
+				float dist = distance(intersectionPoint, ColorToWorld(GPhotonPos[index].xyz));
+
+				if (dist < PHOTON_CLOSENESS)
+				{
+					color += GPhotonColor[index];
+					numColors++;
+				}
+			}
+		}
+	}
+
+	if (numColors != 0)
+	{
+		return color / numColors;
+	}
+    return float4(0.0, 1.0, 0.0, 1.0);
 }
 
 [shader("closesthit")]

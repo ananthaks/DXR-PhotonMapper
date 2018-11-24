@@ -309,7 +309,7 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
         float2 tempPixel = pixelPos;
         tempPixel /= screenDims;
 
-        RenderTarget[pixelPos] = payload.color;
+        //RenderTarget[pixelPos] = payload.color;
         //GPhotonPos[pixelPos] = payload.color;
     }
     
@@ -408,6 +408,12 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 
     return INV_PI * albedo;
 }
+
+inline float3 WorldToColor(float3 worldPosition)
+{
+	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
+}
+
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
@@ -509,9 +515,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.direction = wiW; // Direction
 
     // Store photon
-    float3 g_index = float3(DispatchRaysIndex().xy, depth);
-    GPhotonPos[g_index] = float4(hitPosition, 1);
-    GPhotonColor[g_index] = payload.color;
+    uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
+    GPhotonPos[g_index] = float4(WorldToColor(hitPosition), 1);
+	GPhotonColor[g_index] = payload.color;
     GPhotonNorm[g_index] = float4(triangleNormal, 0);
 
     // Russian Roulette 
