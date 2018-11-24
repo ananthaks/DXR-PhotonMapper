@@ -16,12 +16,12 @@
 #include "RaytracingHlslCompat.h"
 
 // Render Target for visualizing the photons - can be removed later on
-RWTexture2D<float4> RenderTarget : register(u0);
+RWTexture2D<float4> RenderTarget : register(u0); // TODO does this need to be an array?
 
 // G-Buffers
-RWTexture2D<float4> GPhotonPos : register(u1);
-RWTexture2D<float4> GPhotonColor : register(u2);
-RWTexture2D<float4> GPhotonNorm : register(u3);
+RWTexture2DArray<float4> GPhotonPos : register(u1);
+RWTexture2DArray<float4> GPhotonColor : register(u2);
+RWTexture2DArray<float4> GPhotonNorm : register(u3);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -68,7 +68,7 @@ struct RayPayload
 {
     float4 color;
     float4 hitPosition;
-    float4 extraInfo; // [0] is shadowHit, [1] is bounce depth
+    float4 extraInfo; // [0] is shadowHit, [1] is bounce depth (starts at 0 -> MaxBounces)
     float3 throughput;
     float3 direction;
 };
@@ -291,7 +291,7 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
     { 
         float4(0, 0, 0, 0), // Hit Color
         float4(0, 0, 0, 0), // Hit Location
-        float4(-1, 1, 0, 1), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
+        float4(-1, 0, 0, 1), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
         float3(0, 0, 0), // Throughput
         float3(0, 0, 0), // Direction
     };
@@ -309,8 +309,8 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
         float2 tempPixel = pixelPos;
         tempPixel /= screenDims;
 
-        //RenderTarget[pixelPos] = payload.color;
-        GPhotonPos[pixelPos] = payload.color;
+        RenderTarget[pixelPos] = payload.color;
+        //GPhotonPos[pixelPos] = payload.color;
     }
     
 }
@@ -319,10 +319,13 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 void MyRaygenShader()
 {
     float2 samplePoint = DispatchRaysIndex().xy;
-    float2 screenDims = DispatchRaysDimensions().xy;
+    //float2 screenDims = DispatchRaysDimensions().xy;
+    uint width, height;
+    RenderTarget.GetDimensions(width, height);
+    float2 screenDims = float2(width, height);
 
     // Set seed for PRNG
-    rng_state = uint(wang_hash(samplePoint.x + screenDims.x * samplePoint.y));
+    rng_state = uint(wang_hash(samplePoint.x + DispatchRaysDimensions().x * samplePoint.y));
 
 
     // Debug PRNG
@@ -349,7 +352,7 @@ void MyRaygenShader()
         //float4(0, 0, 0, 0), // Hit Color
         g_sceneCB.lightDiffuseColor, // Photon's starting color
         float4(0, 0, 0, 0), // Hit Location
-        float4(1, 5, 0, 0), // Any extra information - Payload has to be 16 byte aligned
+        float4(1, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
         float3(1, 1, 1), // Throughput
         rayDir, // Direction
     };
@@ -415,10 +418,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     }
 
     int depth = payload.extraInfo.y; // Using [1] crashes...
-    if (depth == 0) {
-        //return;
+    if (depth >= MAX_RAY_RECURSION_DEPTH) {
+        return;
     }
-    depth--;
 
 
     float3 hitPosition = HitWorldPosition();
@@ -459,7 +461,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     // TODO We don't have UVs
     // Calculate tangent and bitangent of triangle using its points
-    /*
+    
     float3 tangent = normalize(Vertices[indices[0]].position - hitPosition);
     float3 bitangent = normalize(cross(tangent, triangleNormal));
 
@@ -478,9 +480,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
 
     float3 wiW = normalize(mul(wi, tangentToWorld));
-    */
-
     
+
+    /*
     float3 f = INV_PI * triangleColor;
     float3 wiW = normalize(calculateRandomDirectionInHemisphere(triangleNormal));
     float d = dot(wiW, triangleNormal);
@@ -490,6 +492,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     } else {
         pdf = INV_PI * d;
     }
+    */
     
     if (pdf < EPSILON) {
         return;
@@ -499,6 +502,11 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // TODO Store photon
     //float2 screenDims = {payload.extraInfo.z, payload.extraInfo.w};
     //VisualizePhoton(payload, screenDims); // Doesn't work....
+    //GPhotonPos[float2(depth, depth)] = float4(hitPosition, 1);
+    float3 g_index = float3(DispatchRaysIndex().xy, depth);
+    GPhotonPos[g_index] = float4(hitPosition, 1);
+    GPhotonColor[g_index] = payload.color;
+    GPhotonNorm[g_index] = float4(triangleNormal, 0);
 
     float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
     float3 n_throughput = payload.throughput * curr_throughput;
@@ -515,6 +523,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     };
     */
 
+    depth++;
     payload.color = float4(payload.color * curr_throughput, 1); // Photon's starting color
     payload.hitPosition = float4(hitPosition, 0.0); // Hit Location
     payload.extraInfo = float4(1.0f, depth, 0, 0); // Any extra information - Payload has to be 16 byte aligned

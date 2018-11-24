@@ -369,7 +369,7 @@ void PhotonMapperRenderer::CreateRaytracingPipelineStateObject()
     auto pipelineConfig = raytracingPipeline.CreateSubobject<CD3D12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
     // PERFOMANCE TIP: Set max recursion depth as low as needed 
     // as drivers may apply optimization strategies for low recursion depths.
-    UINT maxRecursionDepth = 5; // ~ primary rays only. // TODO
+    UINT maxRecursionDepth = MAX_RAY_RECURSION_DEPTH; // ~ primary rays only. // TODO
     pipelineConfig->Config(maxRecursionDepth);
 
 #if _DEBUG
@@ -416,15 +416,16 @@ void PhotonMapperRenderer::CreateGBuffers()
     // 2. Photon Color
     // 3. Photon Normal (local space?)
 
-    // Might change later.
-    m_gBufferWidth = m_width;
-    m_gBufferHeight = m_height;
+    // TODO Might change later.
+    m_gBufferWidth = min(16384, NumPhotons); // m_width * m_height;
+    m_gBufferHeight = (NumPhotons / 16384) + 1; //m_height;
+    m_gBufferDepth = MAX_RAY_RECURSION_DEPTH;
 
     auto device = m_deviceResources->GetD3DDevice();
     auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
 
     // Create the output resource. The dimensions and format should match the swap-chain.
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_gBufferWidth, m_gBufferHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
     m_gBuffers.clear();
@@ -442,7 +443,8 @@ void PhotonMapperRenderer::CreateGBuffers()
         D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
         gBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, gBuffer.uavDescriptorHeapIndex);
         D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY; // TODO is this right?
+        UAVDesc.Texture2DArray.ArraySize = m_gBufferDepth;
         device->CreateUnorderedAccessView(gBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
         gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
 
@@ -959,8 +961,8 @@ void PhotonMapperRenderer::DoRaytracing()
         dispatchDesc->MissShaderTable.StrideInBytes = dispatchDesc->MissShaderTable.SizeInBytes;
         dispatchDesc->RayGenerationShaderRecord.StartAddress = m_rayGenShaderTable->GetGPUVirtualAddress();
         dispatchDesc->RayGenerationShaderRecord.SizeInBytes = m_rayGenShaderTable->GetDesc().Width;
-        dispatchDesc->Width = m_width;
-        dispatchDesc->Height = m_height;
+        dispatchDesc->Width = m_gBufferWidth;
+        dispatchDesc->Height = m_gBufferHeight;
         dispatchDesc->Depth = 1;
         commandList->SetPipelineState1(stateObject);
         commandList->DispatchRays(dispatchDesc);
@@ -1051,7 +1053,7 @@ void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
-    CreateGBuffers();
+    CreateGBuffers(); // TODO is this right?
     UpdateCameraMatrices();
 }
 
@@ -1118,13 +1120,13 @@ void PhotonMapperRenderer::OnRender()
     DoRaytracing();
 
     // This is turned off for now, in order to test whether G Buffer was actually getting filled.
-    //CopyRaytracingOutputToBackbuffer();
+    CopyRaytracingOutputToBackbuffer();
 
     // The index Passed is the G buffer index in the collection - 
     // 0 - pos
     // 1 - color
     // 2 - normal
-    CopyGBUfferToBackBuffer(0U);
+    //CopyGBUfferToBackBuffer(0U);
 
     m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
 }

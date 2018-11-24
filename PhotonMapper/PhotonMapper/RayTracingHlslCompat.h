@@ -21,6 +21,8 @@ using namespace DirectX;
 typedef UINT16 Index;
 #endif
 
+#define MAX_RAY_RECURSION_DEPTH 5
+
 struct SceneConstantBuffer
 {
     XMMATRIX projectionToWorld;

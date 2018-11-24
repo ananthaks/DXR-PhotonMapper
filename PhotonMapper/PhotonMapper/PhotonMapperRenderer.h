@@ -39,6 +39,7 @@ public:
 private:
     static const UINT FrameCount = 3;
     static const UINT NumGBuffers = 3;
+    static const UINT NumPhotons = 1000000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
@@ -84,8 +85,9 @@ private:
         D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle;
     };
 
-    uint32_t m_gBufferWidth;
-    uint32_t m_gBufferHeight;
+    UINT m_gBufferWidth;
+    UINT m_gBufferHeight;
+    UINT m_gBufferDepth;
     struct GBuffer
     {
         ComPtr<ID3D12Resource> textureResource;
