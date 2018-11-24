@@ -19,9 +19,9 @@
 RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
-RWTexture2D<float4> GPhotonPos : register(u1);
-RWTexture2D<float4> GPhotonColor : register(u2);
-RWTexture2D<float4> GPhotonNorm : register(u3);
+RWTexture2DArray<float4> GPhotonPos : register(u1);
+RWTexture2DArray<float4> GPhotonColor : register(u2);
+RWTexture2DArray<float4> GPhotonNorm : register(u3);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -119,18 +119,6 @@ inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 
 	inRange = true;
 	pixelIndex.x = ((clippingCoord.x + 1.0) * 0.5f) * screenDim.x;
 	pixelIndex.y = ((1.0 - clippingCoord.y) * 0.5f) * screenDim.y;
-}
-
-
-// Diffuse lighting calculation.
-float4 CalculateDiffuseLighting(float3 hitPosition, float3 normal, float3 color)
-{
-	float3 pixelToLight = normalize(g_sceneCB.lightPosition.xyz - hitPosition);
-
-	// Diffuse contribution.
-	float fNDotL = max(0.0f, dot(pixelToLight, normal));
-
-	return float4(color, 1.0) * g_sceneCB.lightDiffuseColor * fNDotL;
 }
 
 // Sampling functions
@@ -315,52 +303,47 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 
 }
 
+// Diffuse lighting calculation.
+inline float4 CalculateDiffuseLighting2(float3 hitPosition, float3 normal)
+{
+    float3 pixelToLight = normalize(g_sceneCB.lightPosition.xyz - hitPosition);
+
+    // Diffuse contribution.
+    float fNDotL = max(0.0f, dot(pixelToLight, normal));
+
+    return float4(1, 1, 1, 1) * g_sceneCB.lightDiffuseColor * fNDotL;
+}
+
+
 [shader("raygeneration")]
 void MyRaygenShader()
 {
-	float2 samplePoint = DispatchRaysIndex().xy;
-	float2 screenDims = DispatchRaysDimensions().xy;
+    float3 rayDir;
+    float3 origin;
 
-	// Set seed for PRNG
-	rng_state = uint(wang_hash(samplePoint.x + screenDims.x * samplePoint.y));
+    // Generate a ray for a camera pixel corresponding to an index from the dispatched 2D grid.
+    GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
 
+    // Trace the ray.
+    // Set the ray's extents.
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = rayDir;
+    // Set TMin to a non-zero small value to avoid aliasing issues due to floating - point errors.
+    // TMin should be kept small to prevent missing geometry at close contact areas.
+    ray.TMin = 0.001;
+    ray.TMax = 10000.0;
+    RayPayload payload = { float4(0, 0, 0, 0),
+    float4(0, 0, 0, 0),
+    float4(0, 0, 0, 0),
+    float3(0, 0, 0),
+    float3(0, 0, 0)};
+    TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
-	// Debug PRNG
-	//float rand = rand_xorshift();
-	//RenderTarget[samplePoint] = float4(rand, rand, rand, 1);
-	//return;
-
-	// Photon Generation
-	float3 rayDir;
-	float3 origin;
-	GeneratePhoton(samplePoint, screenDims, origin, rayDir);
-
-	// Trace the ray.
-	RayDesc ray;
-	ray.Origin = origin;
-	ray.Direction = rayDir;
-	ray.TMin = 0.001;
-	ray.TMax = 10000.0;
-
-	// TODO max depth is 5. Do we want to change that?
-	// Initialize the payload
-	RayPayload payload =
-	{
-		//float4(0, 0, 0, 0), // Hit Color
-		g_sceneCB.lightDiffuseColor, // Photon's starting color
-		float4(0, 0, 0, 0), // Hit Location
-		float4(1, 5, 0, 0), // Any extra information - Payload has to be 16 byte aligned
-		float3(1, 1, 1), // Throughput
-		rayDir, // Direction
-	};
-
-	// Perform Main photon tracing
-	TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
-
-	// Render the photons on the screen
-	VisualizePhoton(payload, screenDims);
-
+    // Write the raytraced color to the output texture.
+    RenderTarget[DispatchRaysIndex().xy] = payload.color;
 }
+
 
 // From hw 3
 inline float3 calculateRandomDirectionInHemisphere(in float3 normal) {
@@ -406,138 +389,17 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 	return INV_PI * albedo;
 }
 
+inline float4 GetAvgPhotonColor(float3 intersectionPoint)
+{
+    return float4(1.0, 0.0, 0.0, 1.0);
+}
+
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-	int isShadow = payload.extraInfo.x;
-	if (isShadow == -1) {
-		return;
-	}
+    float3 hitPosition = HitWorldPosition();
+    payload.color = GetAvgPhotonColor(hitPosition);
 
-	int depth = payload.extraInfo.y; // Using [1] crashes...
-	if (depth == 0) {
-		//return;
-	}
-	depth--;
-
-
-	float3 hitPosition = HitWorldPosition();
-
-	// Get the base index of the triangle's first 16 bit index.
-	uint indexSizeInBytes = 2;
-	uint indicesPerTriangle = 3;
-	uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
-	uint baseIndex = PrimitiveIndex() * triangleIndexStride;
-
-	// Load up 3 16 bit indices for the triangle.
-	const uint3 indices = Load3x16BitIndices(baseIndex);
-
-	// Retrieve corresponding vertex normals for the triangle vertices.
-	float3 vertexNormals[3] = {
-		Vertices[indices[0]].normal,
-		Vertices[indices[1]].normal,
-		Vertices[indices[2]].normal
-	};
-
-	// Compute the triangle's normal.
-	// This is redundant and done for illustration purposes 
-	// as all the per-vertex normals are the same and match triangle's normal in this sample. 
-	float3 triangleNormal = HitAttribute(vertexNormals, attr);
-
-	// Retrieve corresponding vertex normals for the triangle vertices.
-	float3 vertexColors[3] = {
-		Vertices[indices[0]].color,
-		Vertices[indices[1]].color,
-		Vertices[indices[2]].color
-	};
-
-	// Compute the triangle's normal.
-	// This is redundant and done for illustration purposes 
-	// as all the per-vertex normals are the same and match triangle's normal in this sample. 
-	float3 triangleColor = HitAttribute(vertexColors, attr);
-
-
-	// TODO We don't have UVs
-	// Calculate tangent and bitangent of triangle using its points
-	/*
-	float3 tangent = normalize(Vertices[indices[0]].position - hitPosition);
-	float3 bitangent = normalize(cross(tangent, triangleNormal));
-
-	// TODO make sure these are columns
-	float3x3 tangentToWorld = float3x3(tangent, bitangent, triangleNormal);
-	float3x3 worldToTangent = transpose(tangentToWorld);
-
-	// BSDF. Assume everything is only Lambert
-	// TODO Add more material types
-	float2 randomSample = float2(rand_xorshift(), rand_xorshift());
-	float3 woW = -payload.direction;
-	float3 wo = normalize(mul(woW, worldToTangent));
-	float3 wi;
-	float pdf;
-
-	float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-
-	float3 wiW = normalize(mul(wi, tangentToWorld));
-	*/
-
-
-	float3 f = INV_PI * triangleColor;
-	float3 wiW = normalize(calculateRandomDirectionInHemisphere(triangleNormal));
-	float d = dot(wiW, triangleNormal);
-	float pdf;
-	if (d < 0) {
-		pdf = 0;
-	}
-	else {
-		pdf = INV_PI * d;
-	}
-
-	if (pdf < EPSILON) {
-		return;
-	}
-
-
-	// TODO Store photon
-	//float2 screenDims = {payload.extraInfo.z, payload.extraInfo.w};
-	//VisualizePhoton(payload, screenDims); // Doesn't work....
-
-	float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
-	float3 n_throughput = payload.throughput * curr_throughput;
-
-	/*
-	RayPayload payload_child =
-	{
-		//float4(float3(1, 1, 1) / (5 - depth), 1), // Hit Color
-		float4(payload.color * curr_throughput, 1), // Photon's starting color
-		float4(hitPosition, 1.0), // Hit Location
-		float4(1.f, depth, 0, 0), // Any extra information - Payload has to be 16 byte aligned
-		n_throughput, // Throughput
-		wiW, // Direction
-	};
-	*/
-
-	payload.color = float4(payload.color * curr_throughput, 1); // Photon's starting color
-	payload.hitPosition = float4(hitPosition, 0.0); // Hit Location
-	payload.extraInfo = float4(1.0f, depth, 0, 0); // Any extra information - Payload has to be 16 byte aligned
-	payload.throughput = n_throughput; // Throughput
-	payload.direction = wiW; // Direction
-
-	// Russian Roulette 
-	float throughput_max = maxValue(n_throughput);
-	if (rand_xorshift() < (1.f - throughput_max)) {
-		//payload = payload_child;
-		return;
-	}
-
-	// Spawn another ray and trace it
-	RayDesc ray;
-	ray.Origin = hitPosition;
-	ray.Direction = wiW;
-	ray.TMin = 0.001;
-	ray.TMax = 10000.0;
-
-	TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
-	//payload = payload_child;
 }
 
 [shader("miss")]

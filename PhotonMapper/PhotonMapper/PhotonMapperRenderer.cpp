@@ -85,7 +85,7 @@ void PhotonMapperRenderer::OnInit()
     CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
 
-	//m_calculatePhotonMap = true;
+	m_calculatePhotonMap = true;
 }
 
 // Update camera matrices passed into the shader.
@@ -195,12 +195,12 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateRaytracingInterfaces();
 
     // Create root signatures for the shaders.
-    //CreateFirstPassRootSignatures();
+    CreateFirstPassRootSignatures();
     CreateSecondPassRootSignatures();
 
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
-	//CreateFirstPassPhotonPipelineStateObject();
+	CreateFirstPassPhotonPipelineStateObject();
 	CreateSecondPassPhotonPipelineStateObject();
 
     // Create a heap for descriptors.
@@ -216,7 +216,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateConstantBuffers();
 
     // Build shader tables, which define shaders and their local root arguments.
-    //BuildFirstPassShaderTables();
+    BuildFirstPassShaderTables();
     BuildSecondPassShaderTables();
 
     // Create an output 2D texture to store the raytracing result to.
@@ -482,7 +482,7 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 	auto pipelineConfig = raytracingPipeline.CreateSubobject<CD3D12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
 	// PERFOMANCE TIP: Set max recursion depth as low as needed 
 	// as drivers may apply optimization strategies for low recursion depths.
-	UINT maxRecursionDepth = 5; // ~ primary rays only. // TODO
+	UINT maxRecursionDepth = 1; // ~ primary rays only. // TODO
 	pipelineConfig->Config(maxRecursionDepth);
 
 #if _DEBUG

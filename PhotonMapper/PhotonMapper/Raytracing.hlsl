@@ -497,31 +497,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     if (pdf < EPSILON) {
         return;
     }
-    
-
-    // TODO Store photon
-    //float2 screenDims = {payload.extraInfo.z, payload.extraInfo.w};
-    //VisualizePhoton(payload, screenDims); // Doesn't work....
-    //GPhotonPos[float2(depth, depth)] = float4(hitPosition, 1);
-    float3 g_index = float3(DispatchRaysIndex().xy, depth);
-    GPhotonPos[g_index] = float4(hitPosition, 1);
-    GPhotonColor[g_index] = payload.color;
-    GPhotonNorm[g_index] = float4(triangleNormal, 0);
 
     float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
     float3 n_throughput = payload.throughput * curr_throughput;
-
-    /*
-    RayPayload payload_child =
-    {
-        //float4(float3(1, 1, 1) / (5 - depth), 1), // Hit Color
-        float4(payload.color * curr_throughput, 1), // Photon's starting color
-        float4(hitPosition, 1.0), // Hit Location
-        float4(1.f, depth, 0, 0), // Any extra information - Payload has to be 16 byte aligned
-        n_throughput, // Throughput
-        wiW, // Direction
-    };
-    */
 
     depth++;
     payload.color = float4(payload.color * curr_throughput, 1); // Photon's starting color
@@ -529,6 +507,12 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.extraInfo = float4(1.0f, depth, 0, 0); // Any extra information - Payload has to be 16 byte aligned
     payload.throughput = n_throughput; // Throughput
     payload.direction = wiW; // Direction
+
+    // Store photon
+    float3 g_index = float3(DispatchRaysIndex().xy, depth);
+    GPhotonPos[g_index] = float4(hitPosition, 1);
+    GPhotonColor[g_index] = payload.color;
+    GPhotonNorm[g_index] = float4(triangleNormal, 0);
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);
@@ -545,7 +529,6 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     ray.TMax = 10000.0;
 
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
-    //payload = payload_child;
 }
 
 [shader("miss")]
