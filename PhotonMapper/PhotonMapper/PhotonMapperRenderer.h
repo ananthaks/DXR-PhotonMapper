@@ -55,18 +55,24 @@ private:
     // Raytracing Fallback Layer (FL) attributes
     ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
     ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
-    ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackStateObject;
+    ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
+    ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
     WRAPPED_GPU_POINTER m_fallbackTopLevelAccelerationStructurePointer;
 
     // DirectX Raytracing (DXR) attributes
     ComPtr<ID3D12Device5> m_dxrDevice;
     ComPtr<ID3D12GraphicsCommandList5> m_dxrCommandList;
-    ComPtr<ID3D12StateObject> m_dxrStateObject;
+    ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
+    ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
     bool m_isDxrSupported;
 
-    // Root signatures
-    ComPtr<ID3D12RootSignature> m_raytracingGlobalRootSignature;
-    ComPtr<ID3D12RootSignature> m_raytracingLocalRootSignature;
+    // Root signatures for the first pass
+    ComPtr<ID3D12RootSignature> m_firstPassGlobalRootSignature;
+    ComPtr<ID3D12RootSignature> m_firstPassLocalRootSignature;
+	
+	// Root signatures for the second pass
+	ComPtr<ID3D12RootSignature> m_secondPassGlobalRootSignature;
+    ComPtr<ID3D12RootSignature> m_secondPassLocalRootSignature;
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
@@ -97,6 +103,8 @@ private:
 
     std::vector<GBuffer> m_gBuffers;
 
+	
+
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
 
@@ -118,13 +126,22 @@ private:
     static const wchar_t* c_raygenShaderName;
     static const wchar_t* c_closestHitShaderName;
     static const wchar_t* c_missShaderName;
-    ComPtr<ID3D12Resource> m_missShaderTable;
-    ComPtr<ID3D12Resource> m_hitGroupShaderTable;
-    ComPtr<ID3D12Resource> m_rayGenShaderTable;
+
+	struct ShaderTableRes
+	{
+		ComPtr<ID3D12Resource> m_missShaderTable;
+		ComPtr<ID3D12Resource> m_hitGroupShaderTable;
+		ComPtr<ID3D12Resource> m_rayGenShaderTable;
+	};
+
+	ShaderTableRes m_firstPassShaderTableRes;
+	ShaderTableRes m_secondPassShaderTableRes;
+
 
     // Application state
     RaytracingAPI m_raytracingAPI;
     bool m_forceComputeFallback;
+	bool m_calculatePhotonMap;
     StepTimer m_timer;
     float m_curRotationAngleRad;
     XMVECTOR m_eye;
@@ -136,7 +153,8 @@ private:
     void UpdateCameraMatrices();
     void InitializeScene();
     void RecreateD3D();
-    void DoRaytracing();
+    void DoFirstPassPhotonMapping();
+    void DoSecondPassPhotonMapping();
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -144,15 +162,18 @@ private:
     void ReleaseWindowSizeDependentResources();
     void CreateRaytracingInterfaces();
     void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
-    void CreateRootSignatures();
-    void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline);
-    void CreateRaytracingPipelineStateObject();
+    void CreateFirstPassRootSignatures();
+    void CreateSecondPassRootSignatures();
+    void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig);
+    void CreateFirstPassPhotonPipelineStateObject();
+    void CreateSecondPassPhotonPipelineStateObject();
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();
     void BuildGeometry();
     void BuildAccelerationStructures();
-    void BuildShaderTables();
+    void BuildFirstPassShaderTables();
+    void BuildSecondPassShaderTables();
     void SelectRaytracingAPI(RaytracingAPI type);
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();

@@ -86,6 +86,7 @@ namespace DX
         ID3D12CommandQueue*         GetCommandQueue() const { return m_commandQueue.Get(); }
         ID3D12CommandAllocator*     GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
         ID3D12GraphicsCommandList*  GetCommandList() const { return m_commandList.Get(); }
+        ID3D12GraphicsCommandList*  GetPhotonRenderCommandList() const { return m_photonRenderCommandList.Get(); }
         DXGI_FORMAT                 GetBackBufferFormat() const { return m_backBufferFormat; }
         DXGI_FORMAT                 GetDepthBufferFormat() const { return m_depthBufferFormat; }
         D3D12_VIEWPORT              GetScreenViewport() const { return m_screenViewport; }
@@ -122,6 +123,7 @@ namespace DX
         Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_photonRenderCommandList;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
         // Swap chain objects.
