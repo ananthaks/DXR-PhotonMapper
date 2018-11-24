@@ -144,7 +144,8 @@ private:
     void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateRootSignatures();
     void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline);
-    void CreateRaytracingPipelineStateObject();
+    void CreateFirstPassPhotonPipelineStateObject();
+    void CreateSecondPassPhotonPipelineStateObject();
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();

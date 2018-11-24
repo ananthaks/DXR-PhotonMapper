@@ -97,6 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Raytracing.hlsl" />
+    <FxCompile Include="PhotonMapperShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl" />
