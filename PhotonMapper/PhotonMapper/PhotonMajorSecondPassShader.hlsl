@@ -122,14 +122,17 @@ inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 
 inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 screenDims)
 {
     // Find the Screen Space Coord for the photon
-    uint2 pixelPos;
+    uint2 pixelPos = uint2(500, 500);
     bool inRange;
     GetPixelPosition(hitPosition, screenDims, pixelPos, inRange);
 
     if (!inRange) 
     {
+        RenderTarget[pixelPos] = float4(0.0, 1.0, 0.0, 1.0);
         return;
     }
+
+    
 
     // Shadow Ray.
     RayDesc ray;
@@ -162,34 +165,36 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
         float4 currentColor = StagedRenderTarget[pixelPos];
         float4 newColor = float4(currentColor.xyz + photonColor.xyz, currentColor.w + 1.0f);
         StagedRenderTarget[pixelPos] = newColor;
+        RenderTarget[pixelPos] = float4(1.0, 1.0, 0.0, 1.0);
+    }
+    else
+    {
+        RenderTarget[pixelPos] = shadowPayload.color;//float4(0.0, 1.0, 0.0, 1.0);
     }
 }
 
 [shader("raygeneration")]
 void MyRaygenShader()
 {
-    uint3 g_index = uint3(DispatchRaysIndex().xyz);
+    uint3 g_index = uint3(DispatchRaysIndex().xy, 0.0f);
 
     float4 photonPos = GPhotonPos[g_index];
     float4 photonCol = GPhotonColor[g_index];
 
     bool didPhotonIntersect = photonPos.w > 0.0f;
 
-    if (didPhotonIntersect)
-    {
-        uint width, height;
-        StagedRenderTarget.GetDimensions(width, height);
-        float2 screenDims = float2(width, height);
+    uint width, height;
+    RenderTarget.GetDimensions(width, height);
+    float2 screenDims = float2(width, height);
 
-        VisualizePhoton(photonPos, photonCol, screenDims);
-    }
+    VisualizePhoton(photonPos, photonCol, screenDims);
 }
 
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-    float3 hitPosition = HitWorldPosition();
+    payload.color = float4(1.0f, 0.0f, 0.0f, 1.0f);
     payload.extraInfo = float4(1.0f, 0.0f, 0, 0);
 }
 
@@ -205,6 +210,8 @@ void MyMissShader(inout RayPayload payload)
         payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
+
+    payload.color = float4(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 #endif // PHOTON_MAPPER_HLSL

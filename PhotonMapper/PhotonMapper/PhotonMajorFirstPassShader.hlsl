@@ -307,7 +307,7 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
         float2 tempPixel = pixelPos;
         tempPixel /= screenDims;
 
-        //RenderTarget[pixelPos] = payload.color;
+        RenderTarget[pixelPos] = payload.color;
         //GPhotonPos[pixelPos] = payload.color;
     }
     
@@ -352,7 +352,7 @@ void MyRaygenShader()
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
     // Render the photons on the screen
-    // VisualizePhoton(payload, screenDims);
+    //VisualizePhoton(payload, screenDims);
 }
 
 // From hw 3

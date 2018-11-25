@@ -14,19 +14,19 @@
 #include "PhotonMapperRenderer.h"
 #include "PhotonMajorRenderer.h"
 
-#define USE_PHOTON_MAJOR_RENDERER
-//#define USE_PIXEL_MAJOR_RENDERER
+//#define USE_PHOTON_MAJOR_RENDERER
+#define USE_PIXEL_MAJOR_RENDERER
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
 #ifdef USE_PIXEL_MAJOR_RENDERER
-    PhotonMapperRenderer sample(1280, 720, L"DXR Pixel Majore Renderer");
+    PhotonMapperRenderer sample(1280, 720, L"DXR Pixel Major Renderer");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
 #endif
 
 #ifdef USE_PHOTON_MAJOR_RENDERER
-    PhotonMajorRenderer sample(1280, 720, L"DXR Photon Majore Renderer");
+    PhotonMajorRenderer sample(1280, 720, L"DXR Photon Major Renderer");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
 #endif
 
