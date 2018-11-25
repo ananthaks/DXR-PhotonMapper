@@ -11,17 +11,20 @@ Implemented features:
 
 ## Results
 
-**Photon Gather (Contains 1000 photons)**
-![](Docs/images/milestone2/photon_mapping.PNG)
+**Photon Gather**
+
+|1k Photons| 10k Photons|
+|---|---|
+|![](Docs/images/milestone2/photon_mapping.PNG)|![](Docs/images/milestone2/photon_mapping_10k.PNG)|
 
 **Photon Color Visualization (Contains 1 Million Photons)**
 ![](Docs/images/milestone2/photons_color.PNG)
 
-**Photon Normal Visualization (Contains 1 Million Photons)**
-![](Docs/images/milestone2/normals.PNG)
-
 **Photon First Bounce Visualization (Contains 1 Million Photons)**
 ![](Docs/images/milestone2/photon_first_bounce.PNG)
+
+**Photon Normal Visualization (Contains 1 Million Photons)**
+![](Docs/images/milestone2/normals.PNG)
 
 ## Milestone 1
 ![](Docs/images/milestone1/capture3.PNG)
