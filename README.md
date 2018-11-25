@@ -3,6 +3,27 @@
 ## Goal
 An implementation of Progressive Photon Mapping using DXR
 
+## Milestone 2
+Implemented features:
+1) Storing photon position, color and normals in textures (g-buffers)
+2) Two Pass Render System
+3) Basic second pass photon gather
+
+## Results
+
+**Photon Gather (Contains 1000 photons)**
+![](Docs/images/milestone2/photon_mapping.PNG)
+
+**Photon Color Visualization (Contains 1 Million Photons)**
+![](Docs/images/milestone2/photons_color.PNG)
+
+**Photon Normal Visualization (Contains 1 Million Photons)**
+![](Docs/images/milestone2/normals.PNG)
+
+**Photon First Bounce Visualization (Contains 1 Million Photons)**
+![](Docs/images/milestone2/photon_first_bounce.PNG)
+
+## Milestone 1
 ![](Docs/images/milestone1/capture3.PNG)
 
 ![](Docs/images/milestone1/cube_photons2.PNG)
