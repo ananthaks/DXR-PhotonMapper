@@ -389,7 +389,7 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 	return INV_PI * albedo;
 }
 
-#define PHOTON_CLOSENESS 0.2f
+#define PHOTON_CLOSENESS 0.05f
 
 inline float3 ColorToWorld(float3 color)
 {
@@ -426,7 +426,7 @@ inline float4 GetAvgPhotonColor(float3 intersectionPoint)
 	{
 		return color / numColors;
 	}
-    return float4(0.0, 1.0, 0.0, 1.0);
+    return float4(0.0, 0.0, 0.0, 1.0);
 }
 
 [shader("closesthit")]

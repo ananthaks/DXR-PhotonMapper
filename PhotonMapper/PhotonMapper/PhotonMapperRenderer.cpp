@@ -546,7 +546,7 @@ void PhotonMapperRenderer::CreateGBuffers()
     auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
 
     // Create the output resource. The dimensions and format should match the swap-chain.
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
     m_gBuffers.clear();
@@ -676,10 +676,10 @@ void PhotonMapperRenderer::BuildGeometry()
         { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
 
         // floor vertices
-        { XMFLOAT3(-5.0f, -1.0f, -5.0f), XMFLOAT3(1.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(1.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(1.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(1.0f, 0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0) },
+        { XMFLOAT3(-5.0f, -1.0f, -5.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(5.0f, -1.0f, -5.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(5.0f, -1.0f, 5.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0) },
         
         // back vertices
 		{ XMFLOAT3(-5.0f, -1.0f, 5.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
