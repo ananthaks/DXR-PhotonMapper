@@ -13,7 +13,7 @@
 // Fallback Layer uses DirectX Raytracing if a driver and OS supports it. 
 // Otherwise, it falls back to compute pipeline to emulate raytracing.
 // Developers aiming for a wider HW support should target Fallback Layer.
-class PhotonMapperRenderer : public DXSample
+class PhotonMajorRenderer : public DXSample
 {
     enum class RaytracingAPI {
         FallbackLayer,
@@ -21,12 +21,12 @@ class PhotonMapperRenderer : public DXSample
     };
 
 public:
-    PhotonMapperRenderer(UINT width, UINT height, std::wstring name);
+    PhotonMajorRenderer(UINT width, UINT height, std::wstring name);
 
     // IDeviceNotify
     virtual void OnDeviceLost() override;
     virtual void OnDeviceRestored() override;
-    
+
     // Messages
     virtual void OnInit();
     virtual void OnKeyDown(UINT8 key);

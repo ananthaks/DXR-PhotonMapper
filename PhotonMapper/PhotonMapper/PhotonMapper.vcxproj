@@ -169,6 +169,7 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="DirectXRaytracingHelper.h" />
     <ClInclude Include="HlslCompat.h" />
+    <ClInclude Include="PhotonMajorRenderer.h" />
     <ClInclude Include="PhotonMapperRenderer.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
@@ -183,6 +184,7 @@ PrebuildCheck.bat</Command>
   <ItemGroup>
     <ClCompile Include="D3D12RaytracingSimpleLighting.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
+    <ClCompile Include="PhotonMajorRenderer.cpp" />
     <ClCompile Include="PhotonMapperRenderer.cpp" />
     <ClCompile Include="Primitive.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -195,6 +197,30 @@ PrebuildCheck.bat</Command>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="PhotonMajorFirstPassShader.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.3</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename)</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\CompiledShaders\%(Filename).hlsl.h</HeaderFileOutput>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\CompiledShaders\%(Filename).hlsl.h</HeaderFileOutput>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
+    <FxCompile Include="PhotonMajorSecondPassShader.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.3</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Library</ShaderType>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename)</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\CompiledShaders\%(Filename).hlsl.h</HeaderFileOutput>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\CompiledShaders\%(Filename).hlsl.h</HeaderFileOutput>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/Zpr %(AdditionalOptions)</AdditionalOptions>
+    </FxCompile>
     <FxCompile Include="PhotonMapperShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Library</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.3</ShaderModel>

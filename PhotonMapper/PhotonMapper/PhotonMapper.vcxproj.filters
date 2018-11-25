@@ -65,6 +65,9 @@
     </ClInclude>
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Primitive.h" />
+    <ClInclude Include="PhotonMajorRenderer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -90,14 +93,27 @@
     </ClCompile>
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Primitive.cpp" />
+    <ClCompile Include="PhotonMajorRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Raytracing.hlsl" />
-    <FxCompile Include="PhotonMapperShader.hlsl" />
+    <FxCompile Include="PhotonMajorSecondPassShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PhotonMajorFirstPassShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Raytracing.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PhotonMapperShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl" />

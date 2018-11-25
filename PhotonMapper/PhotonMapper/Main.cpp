@@ -12,10 +12,22 @@
 #include "stdafx.h"
 #include "D3D12RaytracingSimpleLighting.h"
 #include "PhotonMapperRenderer.h"
+#include "PhotonMajorRenderer.h"
+
+#define USE_PHOTON_MAJOR_RENDERER
+//#define USE_PIXEL_MAJOR_RENDERER
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    PhotonMapperRenderer sample(1280, 720, L"DXR Photon Mapping");
+#ifdef USE_PIXEL_MAJOR_RENDERER
+    PhotonMapperRenderer sample(1280, 720, L"DXR Pixel Majore Renderer");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
+#endif
+
+#ifdef USE_PHOTON_MAJOR_RENDERER
+    PhotonMajorRenderer sample(1280, 720, L"DXR Photon Majore Renderer");
+    return Win32Application::Run(&sample, hInstance, nCmdShow);
+#endif
+
 }
