@@ -114,6 +114,9 @@
     <FxCompile Include="PhotonMapperShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="PhotonMajorThirdPassShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl" />

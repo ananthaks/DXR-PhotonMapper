@@ -14,6 +14,7 @@
 #include "DirectXRaytracingHelper.h"
 #include "CompiledShaders\PhotonMajorFirstPassShader.hlsl.h"
 #include "CompiledShaders\PhotonMajorSecondPassShader.hlsl.h"
+#include "CompiledShaders\PhotonMajorThirdPassShader.hlsl.h"
 
 using namespace std;
 using namespace DX;
@@ -529,7 +530,6 @@ void PhotonMajorRenderer::CreateGBuffers()
     // 2. Photon Color
     // 3. Photon Normal (local space?)
 
-    // TODO Might change later.
     int width = sqrt(NumPhotons);
     int height = width;
     if (NumPhotons % width != 0)
@@ -538,8 +538,6 @@ void PhotonMajorRenderer::CreateGBuffers()
     }
     m_gBufferWidth = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, width);
     m_gBufferHeight = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, height);
-    //m_gBufferWidth = min(16384, NumPhotons); // m_width * m_height;
-    //m_gBufferHeight = (NumPhotons / 16384) + 1; //m_height;
     m_gBufferDepth = MAX_RAY_RECURSION_DEPTH;
 
     auto device = m_deviceResources->GetD3DDevice();
@@ -564,7 +562,7 @@ void PhotonMajorRenderer::CreateGBuffers()
         D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
         gBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, gBuffer.uavDescriptorHeapIndex);
         D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY; // TODO is this right?
+        UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
         UAVDesc.Texture2DArray.ArraySize = m_gBufferDepth;
         device->CreateUnorderedAccessView(gBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
         gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
@@ -1299,7 +1297,7 @@ void PhotonMajorRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 void PhotonMajorRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
-    CreateGBuffers(); // TODO is this right?
+    CreateGBuffers();
     UpdateCameraMatrices();
 }
 

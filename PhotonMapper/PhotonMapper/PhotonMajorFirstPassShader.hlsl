@@ -16,12 +16,12 @@
 #include "RaytracingHlslCompat.h"
 
 // Render Target for visualizing the photons - can be removed later on
-RWTexture2D<float4> RenderTarget : register(u0); // TODO does this need to be an array?
+RWTexture2D<float4> RenderTarget : register(u0);
+RWTexture2D<float4> StagedRenderTarget : register(u1);
 
 // G-Buffers
-RWTexture2DArray<float4> GPhotonPos : register(u1);
-RWTexture2DArray<float4> GPhotonColor : register(u2);
-RWTexture2DArray<float4> GPhotonNorm : register(u3);
+RWTexture2DArray<float4> GPhotonPos : register(u2);
+RWTexture2DArray<float4> GPhotonColor : register(u3);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -103,8 +103,6 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
     origin = g_sceneCB.cameraPosition.xyz;
     direction = normalize(world.xyz - origin);
 }
-
-
 
 inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex, out bool inRange)
 {
@@ -319,20 +317,15 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
 void MyRaygenShader()
 {
     float2 samplePoint = DispatchRaysIndex().xy;
-    //float2 screenDims = DispatchRaysDimensions().xy;
+    
     uint width, height;
     RenderTarget.GetDimensions(width, height);
+    
     float2 screenDims = float2(width, height);
 
     // Set seed for PRNG
     rng_state = uint(wang_hash(samplePoint.x + DispatchRaysDimensions().x * samplePoint.y));
 
-
-    // Debug PRNG
-    //float rand = rand_xorshift();
-    //RenderTarget[samplePoint] = float4(rand, rand, rand, 1);
-    //return;
-    
     // Photon Generation
     float3 rayDir;
     float3 origin;
@@ -345,11 +338,9 @@ void MyRaygenShader()
     ray.TMin = 0.001;
     ray.TMax = 10000.0;
 
-    // TODO max depth is 5. Do we want to change that?
     // Initialize the payload
     RayPayload payload = 
     { 
-        //float4(0, 0, 0, 0), // Hit Color
         g_sceneCB.lightDiffuseColor, // Photon's starting color
         float4(0, 0, 0, 0), // Hit Location
         float4(1, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
@@ -361,8 +352,7 @@ void MyRaygenShader()
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
     // Render the photons on the screen
-    VisualizePhoton(payload, screenDims);
-    
+    // VisualizePhoton(payload, screenDims);
 }
 
 // From hw 3
@@ -419,15 +409,16 @@ inline float3 WorldToColor(float3 worldPosition)
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     int isShadow = payload.extraInfo.x;
-    if (isShadow == -1) {
+    if (isShadow == -1) 
+    {
         return;
     }
 
-    int depth = payload.extraInfo.y; // Using [1] crashes...
-    if (depth >= MAX_RAY_RECURSION_DEPTH) {
+    int depth = payload.extraInfo.y;
+    if (depth >= MAX_RAY_RECURSION_DEPTH) 
+    {
         return;
     }
-
 
     float3 hitPosition = HitWorldPosition();
 
@@ -484,23 +475,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float pdf;
 
     float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-
     float3 wiW = normalize(mul(wi, tangentToWorld));
     
-
-    /*
-    float3 f = INV_PI * triangleColor;
-    float3 wiW = normalize(calculateRandomDirectionInHemisphere(triangleNormal));
-    float d = dot(wiW, triangleNormal);
-    float pdf;
-    if (d < 0) {
-        pdf = 0;
-    } else {
-        pdf = INV_PI * d;
-    }
-    */
-    
-    if (pdf < EPSILON) {
+    if (pdf < EPSILON) 
+    {
         return;
     }
 
@@ -518,7 +496,6 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
     GPhotonPos[g_index] = float4(WorldToColor(hitPosition), 1);
 	GPhotonColor[g_index] = payload.color;
-    GPhotonNorm[g_index] = float4(triangleNormal, 0);
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);
@@ -542,12 +519,18 @@ void MyMissShader(inout RayPayload payload)
 {
     int isShadow = payload.extraInfo.x;
 
-    if (isShadow == -1) {
+    if (isShadow == -1) 
+    {
         float4 background = float4(1.0f, 1.0f, 1.0f, 1.0f);
         payload.color = background;
         payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
+    
+    int depth = payload.extraInfo.y;
+    uint3 g_index = uint3(DispatchRaysIndex().xy, depth);
+    GPhotonPos[g_index] = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    GPhotonColor[g_index] = payload.color;
 }
 
 #endif // RAYTRACING_HLSL
