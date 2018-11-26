@@ -494,7 +494,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     // Store photon
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
-    GPhotonPos[g_index] = float4(WorldToColor(hitPosition), 1);
+    GPhotonPos[g_index] = float4(hitPosition, 1);
 	GPhotonColor[g_index] = payload.color;
 
     // Russian Roulette 

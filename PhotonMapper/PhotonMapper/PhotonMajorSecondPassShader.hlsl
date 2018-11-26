@@ -128,11 +128,8 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
 
     if (!inRange) 
     {
-        RenderTarget[pixelPos] = float4(0.0, 1.0, 0.0, 1.0);
         return;
     }
-
-    
 
     // Shadow Ray.
     RayDesc ray;
@@ -165,29 +162,30 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
         float4 currentColor = StagedRenderTarget[pixelPos];
         float4 newColor = float4(currentColor.xyz + photonColor.xyz, currentColor.w + 1.0f);
         StagedRenderTarget[pixelPos] = newColor;
-        RenderTarget[pixelPos] = float4(1.0, 1.0, 0.0, 1.0);
-    }
-    else
-    {
-        RenderTarget[pixelPos] = shadowPayload.color;//float4(0.0, 1.0, 0.0, 1.0);
     }
 }
 
 [shader("raygeneration")]
 void MyRaygenShader()
 {
-    uint3 g_index = uint3(DispatchRaysIndex().xy, 0.0f);
+    for (int i = 0; i < MAX_RAY_RECURSION_DEPTH; ++i)
+    {
+        uint3 g_index = uint3(DispatchRaysIndex().xy, i);
 
-    float4 photonPos = GPhotonPos[g_index];
-    float4 photonCol = GPhotonColor[g_index];
+        float4 photonPos = float4(GPhotonPos[g_index].xyz, 1.0);
+        float4 photonCol = GPhotonColor[g_index];
 
-    bool didPhotonIntersect = photonPos.w > 0.0f;
+        bool didPhotonIntersect = GPhotonPos[g_index].w > 0.0f;
 
-    uint width, height;
-    RenderTarget.GetDimensions(width, height);
-    float2 screenDims = float2(width, height);
+        if (didPhotonIntersect)
+        {
+            uint width, height;
+            RenderTarget.GetDimensions(width, height);
+            float2 screenDims = float2(width, height);
 
-    VisualizePhoton(photonPos, photonCol, screenDims);
+            VisualizePhoton(photonPos, photonCol, screenDims);
+        }
+    }
 }
 
 

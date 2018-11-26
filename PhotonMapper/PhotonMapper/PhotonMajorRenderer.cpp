@@ -1397,7 +1397,7 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
 		dispatchDesc->RayGenerationShaderRecord.SizeInBytes = m_secondPassShaderTableRes.m_rayGenShaderTable->GetDesc().Width;
 		dispatchDesc->Width = m_gBufferWidth;
 		dispatchDesc->Height = m_gBufferHeight;
-		dispatchDesc->Depth = m_gBufferDepth;
+		dispatchDesc->Depth = 1;
 		commandList->SetPipelineState1(stateObject);
 		commandList->DispatchRays(dispatchDesc);
 	};
@@ -1678,7 +1678,7 @@ void PhotonMajorRenderer::OnRender()
 	}
 
 	DoSecondPassPhotonMapping();
-	//DoThirdPassPhotonMapping();
+	DoThirdPassPhotonMapping();
 
 	CopyRaytracingOutputToBackbuffer();
     //CopyStagingBufferToBackBuffer();

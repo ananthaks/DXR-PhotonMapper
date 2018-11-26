@@ -53,7 +53,7 @@ void MyRaygenShader()
     if (numColors > 0.0f)
     {
         float3 avgColor = totalColor / numColors;
-        RenderTarget[index] = float4(1.0, 0.0, 0.0, 1.0);
+        RenderTarget[index] = float4(avgColor, 1.0);
     }
 }
 
