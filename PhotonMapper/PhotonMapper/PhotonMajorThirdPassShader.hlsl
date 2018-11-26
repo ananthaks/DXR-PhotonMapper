@@ -1,14 +1,3 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 #ifndef PHOTON_MAPPER_HLSL
 #define PHOTON_MAPPER_HLSL
 
@@ -31,15 +20,10 @@ StructuredBuffer<Vertex> Vertices : register(t2, space0);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
-
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload
 {
     float4 color;
-    float4 hitPosition;
-    float4 extraInfo; // [0] is shadowHit, [1] is bounce depth
-    float3 throughput;
-    float3 direction;
 };
 
 [shader("raygeneration")]
