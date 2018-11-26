@@ -3,15 +3,21 @@
 ## Project Goal
 To implement an efficient Photon Mapper Renderer using DXR API.
 
+## Contributors
+**Anantha Srinivas**
+[LinkedIn](https://www.linkedin.com/in/anantha-srinivas-00198958/), [Twitter](https://twitter.com/an2tha)  
+**Connie Chang**
+[LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
+
 # Milestone 2
 
 ## Milestone Goals
 
-Expectations:
+**Expectations**:
 1) Implementation of Spatial Data Structure
 2) Basic Photon Generation
 
-Achievements:
+**Achievements**:
 1) Construction of common, efficient data storage across all render passes.
 2) Multi Pass Render System
 3) Photon Generation and Propogation
@@ -20,7 +26,7 @@ Achievements:
 
 ## Pixel Iterator vs Photon Iterator
 
-![](Docs/images/milestone2/pixel_vs_photon_space_method.png)
+![](Docs/images/pixel_vs_photon_space_method.png)
 
 ---
 
