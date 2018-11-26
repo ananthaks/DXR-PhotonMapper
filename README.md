@@ -1,13 +1,22 @@
 # DXR-PhotonMapper
 
-## Goal
-An implementation of Progressive Photon Mapping using DXR
+## Project Goal
+To implement an efficient Photon Mapper Renderer using DXR API.
 
-## Milestone 2
-Implemented features:
-1) Storing photon position, color and normals in textures (g-buffers)
-2) Two Pass Render System
-3) Basic second pass photon gather
+# Milestone 2
+
+## Milestone Goals
+
+Expectations:
+1) Implementation of Spatial Data Structure
+2) Basic Photon Generation
+
+Achievements:
+1) Construction of common, efficient data storage across all render passes.
+2) Multi Pass Render System
+3) Photon Generation and Propogation
+4) Naive pixel iterator photon rendering
+5) Photon major iterator rendering
 
 ## Pixel Iterator vs Photon Iterator
 
@@ -31,10 +40,15 @@ However, the shortfall of the naive approach is that we need to iterate through 
 
 Another shortfall of this approach is that it produces a lot of variance in the result. We have a couple of solutions in mind to potentially reduce this. The first way would be to have a rule that each photon may contribute to more that one pixel on screen. This will require us to reverse project a sphere of influence around the photon onto the screen to determine the affecting pixels. We would also need to keep in mind the fraction level of contribution to any pixel. The second solution is perform some level of denoising on the output image. However, that maybe beyond the scope of this short project.
 
+## Implementation
 
-# Results from Milestone 2
+![](Docs/images/Memory_layout.png)
 
-## Naive Photon Gather
+![](Docs/images/pixel_major_arch.png)
+
+![](Docs/images/photon_major_arch.png)
+
+## Results for Naive Pixel Major Iterator 
 
 |#Photons| Output|
 |---|---|
@@ -43,7 +57,7 @@ Another shortfall of this approach is that it produces a lot of variance in the 
 
 ---
 
-## Photon Major Iterator
+## Results for Photon Major Iterator
 
 |#Photons| Output|
 |---|---|
