@@ -11,7 +11,7 @@ Implemented features:
 
 ## Pixel Iterator vs Photon Iterator
 
-![](Docs/images/milestone2/pixel_vs_photon_space_method.PNG)
+![](Docs/images/milestone2/pixel_vs_photon_space_method.png)
 
 ---
 
