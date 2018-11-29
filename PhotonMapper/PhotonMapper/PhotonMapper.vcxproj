@@ -171,10 +171,12 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="HlslCompat.h" />
     <ClInclude Include="PhotonMajorRenderer.h" />
     <ClInclude Include="PhotonMapperRenderer.h" />
+    <ClInclude Include="PMUtilities.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="StepTimer.h" />
+    <ClInclude Include="tiny_gltf_loader.h" />
     <ClInclude Include="Win32Application.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DXSample.h" />

@@ -68,6 +68,12 @@
     <ClInclude Include="PhotonMajorRenderer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="tiny_gltf_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PMUtilities.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

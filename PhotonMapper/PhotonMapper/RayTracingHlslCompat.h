@@ -47,7 +47,4 @@ struct Vertex
 };
 
 
-
-
-
 #endif // RAYTRACINGHLSLCOMPAT_H
