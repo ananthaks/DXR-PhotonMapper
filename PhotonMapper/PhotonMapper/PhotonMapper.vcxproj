@@ -171,10 +171,12 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="HlslCompat.h" />
     <ClInclude Include="PhotonMajorRenderer.h" />
     <ClInclude Include="PhotonMapperRenderer.h" />
+    <ClInclude Include="picojson.h" />
     <ClInclude Include="PMUtilities.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="RaytracingHlslCompat.h" />
-    <ClInclude Include="Scene.h" />
+    <ClInclude Include="PMScene.h" />
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="StepTimer.h" />
     <ClInclude Include="tiny_gltf_loader.h" />
     <ClInclude Include="Win32Application.h" />
@@ -189,7 +191,7 @@ PrebuildCheck.bat</Command>
     <ClCompile Include="PhotonMajorRenderer.cpp" />
     <ClCompile Include="PhotonMapperRenderer.cpp" />
     <ClCompile Include="Primitive.cpp" />
-    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="PMScene.cpp" />
     <ClCompile Include="Win32Application.cpp" />
     <ClCompile Include="DXSample.cpp" />
     <ClCompile Include="Main.cpp" />

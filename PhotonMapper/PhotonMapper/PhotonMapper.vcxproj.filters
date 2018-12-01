@@ -63,7 +63,6 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h" />
     <ClInclude Include="Primitive.h" />
     <ClInclude Include="PhotonMajorRenderer.h">
       <Filter>Source Files</Filter>
@@ -73,6 +72,13 @@
     </ClInclude>
     <ClInclude Include="PMUtilities.h">
       <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="PMScene.h" />
+    <ClInclude Include="picojson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -97,11 +103,11 @@
     <ClCompile Include="PhotonMapperRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Primitive.cpp" />
     <ClCompile Include="PhotonMajorRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PMScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
