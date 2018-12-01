@@ -4,8 +4,6 @@
 #include "PMUtilities.h"
 #include <iostream>
 
-
-
 namespace DXRPhotonMapper
 {
     //------------------------------------------------------
@@ -65,9 +63,14 @@ namespace DXRPhotonMapper
         // Read all raw buffers
         LoadGLTFBufferViews();
 
+        LoadGLTFMeshes();
+
         return true;
     }
 
+    //------------------------------------------------------
+    // PrintGLTFScene
+    //------------------------------------------------------
     void PMScene::PrintGLTFScene()
     {
         std::map<std::string, std::vector<std::string> >::const_iterator it(m_gltfScene.scenes.begin());
@@ -83,6 +86,9 @@ namespace DXRPhotonMapper
         }
     }
 
+    //------------------------------------------------------
+    // LoadGLTFBufferViews
+    //------------------------------------------------------
     void PMScene::LoadGLTFBufferViews()
     {
         std::map<std::string, tinygltf::BufferView>::const_iterator it(m_gltfScene.bufferViews.begin());
@@ -104,7 +110,15 @@ namespace DXRPhotonMapper
             bufferHolder.m_bufferStart = &buffer.data.front() + bufferView.byteOffset;
             bufferHolder.m_length = bufferView.byteLength;
 
-            m_bufferHolders.insert(std::make_pair(key, bufferHolder));
+            m_gltfBufferHolders.insert(std::make_pair(key, bufferHolder));
         }
+    }
+
+    //------------------------------------------------------
+    // LoadGLTFMeshes
+    //------------------------------------------------------
+    void PMScene::LoadGLTFMeshes()
+    {
+        
     }
 }

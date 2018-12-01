@@ -54,14 +54,25 @@ namespace DXRPhotonMapper
 	    std::vector<Geometry> m_sceneGeoms;
 	    std::vector<Material> m_sceneMaterials;
 
-        std::map<std::string, BufferHolder> m_bufferHolders;
-
         tinygltf::Scene m_gltfScene;
+        std::map<std::string, BufferHolder> m_gltfBufferHolders;
 
     private:
 
+        //------------------------------------------------------
+        // PrintGLTFScene
+        //------------------------------------------------------
         void PrintGLTFScene();
+
+        //------------------------------------------------------
+        // LoadGLTFBufferViews
+        //------------------------------------------------------
 	    void LoadGLTFBufferViews();
+
+        //------------------------------------------------------
+        // LoadGLTFMeshes
+        //------------------------------------------------------
+        void LoadGLTFMeshes();
 
     public:
         //------------------------------------------------------
