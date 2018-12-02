@@ -20,9 +20,12 @@ RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
 RWTexture2DArray<uint> GPhotonCount : register(u1);
-RWTexture2DArray<float4> GPhotonPos : register(u2);
-RWTexture2DArray<float4> GPhotonColor : register(u3);
-RWTexture2DArray<float4> GPhotonNorm : register(u4);
+RWTexture2DArray<uint> GPhotonScan : register(u2);
+RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
+
+RWTexture2DArray<float4> GPhotonPos : register(u4);
+RWTexture2DArray<float4> GPhotonColor : register(u5);
+RWTexture2DArray<float4> GPhotonNorm : register(u6);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);

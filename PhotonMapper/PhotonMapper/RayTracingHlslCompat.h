@@ -36,6 +36,12 @@ struct SceneConstantBuffer
     XMVECTOR lightDiffuseColor;
 };
 
+struct PixelMajorComputeConstantBuffer
+{
+	UINT param1;
+	UINT param2;
+};
+
 struct CubeConstantBuffer
 {
     XMFLOAT4 albedo;
