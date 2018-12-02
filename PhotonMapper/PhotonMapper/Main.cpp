@@ -10,7 +10,6 @@
 //*********************************************************
 
 #include "stdafx.h"
-#include "D3D12RaytracingSimpleLighting.h"
 #include "PhotonMapperRenderer.h"
 #include "PhotonMajorRenderer.h"
 

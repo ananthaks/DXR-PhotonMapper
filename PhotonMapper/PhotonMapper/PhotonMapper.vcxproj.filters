@@ -54,9 +54,6 @@
     <ClInclude Include="RaytracingHlslCompat.h">
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12RaytracingSimpleLighting.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="PhotonMapperRenderer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -97,9 +94,6 @@
     <ClCompile Include="DeviceResources.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12RaytracingSimpleLighting.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PhotonMapperRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -120,12 +114,6 @@
     <FxCompile Include="PhotonMajorFirstPassShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Raytracing.hlsl">
-      <Filter>Assets\Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="PhotonMapperShader.hlsl">
-      <Filter>Assets\Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="PhotonMajorThirdPassShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
@@ -133,6 +121,12 @@
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="PixelMajorComputePass2.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelMajorFirstPassShader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelMajorFinalPassShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

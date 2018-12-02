@@ -4,9 +4,10 @@
 RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
-RWTexture2DArray<float4> GPhotonPos : register(u1);
-RWTexture2DArray<float4> GPhotonColor : register(u2);
-RWTexture2DArray<float4> GPhotonNorm : register(u3);
+RWTexture2DArray<uint> GPhotonCount : register(u1);
+RWTexture2DArray<float4> GPhotonPos : register(u2);
+RWTexture2DArray<float4> GPhotonColor : register(u3);
+RWTexture2DArray<float4> GPhotonNorm : register(u4);
 
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)

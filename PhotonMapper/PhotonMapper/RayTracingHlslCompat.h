@@ -24,6 +24,8 @@ typedef UINT16 Index;
 #define MAX_RAY_RECURSION_DEPTH 5
 #define MAX_SCENE_SIZE 100
 
+#define CELL_SIZE 1
+
 struct SceneConstantBuffer
 {
     XMMATRIX projectionToWorld;
@@ -45,6 +47,7 @@ struct Vertex
     XMFLOAT3 color;
     XMFLOAT3 normal;
 };
+
 
 
 #endif // RAYTRACINGHLSLCOMPAT_H

@@ -39,6 +39,7 @@ public:
 private:
     static const UINT FrameCount = 3;
     static const UINT NumGBuffers = 3;
+    static const UINT NumPhotonCountBuffer = 1;
     static const UINT NumPhotons = 1000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
@@ -112,7 +113,7 @@ private:
     };
 
     std::vector<GBuffer> m_gBuffers;
-
+	GBuffer m_photonCountBuffer;
 	
 
     D3DBuffer m_indexBuffer;
@@ -191,6 +192,7 @@ private:
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();
+	void CreatePhotonCountBuffer();
     void BuildGeometry();
     void BuildAccelerationStructures();
     void BuildFirstPassShaderTables();

@@ -19,9 +19,10 @@
 RWTexture2D<float4> RenderTarget : register(u0); // TODO does this need to be an array?
 
 // G-Buffers
-RWTexture2DArray<float4> GPhotonPos : register(u1);
-RWTexture2DArray<float4> GPhotonColor : register(u2);
-RWTexture2DArray<float4> GPhotonNorm : register(u3);
+RWTexture2DArray<uint> GPhotonCount : register(u1);
+RWTexture2DArray<float4> GPhotonPos : register(u2);
+RWTexture2DArray<float4> GPhotonColor : register(u3);
+RWTexture2DArray<float4> GPhotonNorm : register(u4);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -412,6 +413,17 @@ inline float3 WorldToColor(float3 worldPosition)
 	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
 }
 
+uint3 PosToCellId(float3 worldPosition)
+{
+	float3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
+	return uint3(floor(correctWorldPos / CELL_SIZE));
+}
+
+uint Cell3DTo1D(uint3 cellId)
+{
+
+}
+
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
@@ -517,6 +529,11 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     GPhotonPos[g_index] = float4(WorldToColor(hitPosition), 1);
 	GPhotonColor[g_index] = payload.color;
     GPhotonNorm[g_index] = float4(triangleNormal, 0);
+
+	uint3 cellId = PosToCellId(hitPosition);
+	uint increment = 1;
+
+	InterlockedAdd(GPhotonCount[cellId], increment);
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);

@@ -12,8 +12,8 @@
 #include "stdafx.h"
 #include "PhotonMapperRenderer.h"
 #include "DirectXRaytracingHelper.h"
-#include "CompiledShaders\Raytracing.hlsl.h"
-#include "CompiledShaders\PhotonMapperShader.hlsl.h"
+#include "CompiledShaders\PixelMajorFirstPassShader.hlsl.h"
+#include "CompiledShaders\PixelMajorFinalPassShader.hlsl.h"
 
 using namespace std;
 using namespace DX;
@@ -261,7 +261,7 @@ void PhotonMapperRenderer::CreateFirstPassRootSignatures()
     {
 		// TODO: Remove the unnecessary UAV (RenderTarget) from first pass
         CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
-        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);  // 1 output texture + a couple of GBuffers
+        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);  // 1 output texture + a couple of GBuffers
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
@@ -296,7 +296,7 @@ void PhotonMapperRenderer::CreateSecondPassRootSignatures()
 	// This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
 	{
 		CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);  // 1 output texture + a couple of GBuffers
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);  // 1 output texture + a couple of GBuffers
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
 
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
@@ -327,7 +327,7 @@ void PhotonMapperRenderer::CreateComputeFirstPassRootSignature()
 {
 	auto device = m_deviceResources->GetD3DDevice();
 	CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);
 
 	CD3DX12_ROOT_PARAMETER1 rootParameters[ComputeRootSignatureParams::Count];
 	rootParameters[ComputeRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -402,7 +402,7 @@ void PhotonMapperRenderer::CreateFirstPassPhotonPipelineStateObject()
     // This contains the shaders and their entrypoints for the state object.
     // Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
     auto lib = raytracingPipeline.CreateSubobject<CD3D12_DXIL_LIBRARY_SUBOBJECT>();
-    D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE((void *)g_pRaytracing, ARRAYSIZE(g_pRaytracing));
+    D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE((void *)g_pPixelMajorFirstPassShader, ARRAYSIZE(g_pPixelMajorFirstPassShader));
     lib->SetDXILLibrary(&libdxil);
     // Define which shader exports to surface from the library.
     // If no shader exports are defined for a DXIL library subobject, all shaders will be surfaced.
@@ -469,7 +469,7 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 	// This contains the shaders and their entrypoints for the state object.
 	// Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
 	auto lib = raytracingPipeline.CreateSubobject<CD3D12_DXIL_LIBRARY_SUBOBJECT>();
-	D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE((void *)g_pPhotonMapperShader, ARRAYSIZE(g_pPhotonMapperShader));
+	D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE((void *)g_pPixelMajorFinalPassShader, ARRAYSIZE(g_pPixelMajorFinalPassShader));
 	lib->SetDXILLibrary(&libdxil);
 	// Define which shader exports to surface from the library.
 	// If no shader exports are defined for a DXIL library subobject, all shaders will be surfaced.
@@ -618,6 +618,39 @@ void PhotonMapperRenderer::CreateGBuffers()
     
 }
 
+void PhotonMapperRenderer::CreatePhotonCountBuffer()
+{
+	// Create a buffer for hash grid construction
+	// A texture that stores the number of photons in each cell
+	// Divide the entire scene space into cells
+	// For now, a cell is 1x1x1 // TODO do we want to change this?
+	// Max number of cells is defined by MAX_SCENE_SIZE (MAX x MAX x MAX)
+
+	auto device = m_deviceResources->GetD3DDevice();
+
+	// Create the output resource. The dimensions and format should match the swap-chain.
+	auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_UINT, MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	GBuffer tempBuffer = {};
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&tempBuffer.textureResource)));
+	NAME_D3D12_OBJECT(tempBuffer.textureResource);
+
+	tempBuffer.uavDescriptorHeapIndex = UINT_MAX;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
+	tempBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, tempBuffer.uavDescriptorHeapIndex);
+	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+	UAVDesc.Texture2DArray.ArraySize = MAX_SCENE_SIZE;
+	device->CreateUnorderedAccessView(tempBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
+	tempBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), tempBuffer.uavDescriptorHeapIndex, m_descriptorSize);
+
+	m_photonCountBuffer = tempBuffer;
+}
+
 void PhotonMapperRenderer::CreateDescriptorHeap()
 {
     auto device = m_deviceResources->GetD3DDevice();
@@ -628,7 +661,7 @@ void PhotonMapperRenderer::CreateDescriptorHeap()
     // 1 - raytracing output texture SRV
     // 3 - G Buffers
     // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers;
+    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers + NumPhotonCountBuffer;
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -1355,6 +1388,7 @@ void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
+	CreatePhotonCountBuffer();
     CreateGBuffers(); // TODO is this right?
     UpdateCameraMatrices();
 }
@@ -1379,9 +1413,14 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
     m_firstPassGlobalRootSignature.Reset();
     m_firstPassLocalRootSignature.Reset();
 
+	m_computeRootSignature.Reset();
+
     m_dxrDevice.Reset();
     m_dxrCommandList.Reset();
     m_dxrFirstPassStateObject.Reset();
+
+	m_computeFirstPassPSO.Reset();
+	m_computeSecondPassPSO.Reset();
 
     m_descriptorHeap.Reset();
     m_descriptorsAllocated = 0;
@@ -1391,6 +1430,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 	{
 		gBuffer.uavDescriptorHeapIndex = UINT_MAX;
 	}
+
+	m_photonCountBuffer.uavDescriptorHeapIndex = UINT_MAX;
 
     m_indexBuffer.resource.Reset();
     m_vertexBuffer.resource.Reset();
