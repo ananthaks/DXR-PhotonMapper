@@ -39,6 +39,7 @@ public:
 private:
     static const UINT FrameCount = 3;
     static const UINT NumGBuffers = 3;
+	static const UINT NumAccelTextures = NumGBuffers + 2;
     static const UINT NumPhotons = 1000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
@@ -57,6 +58,7 @@ private:
     ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
+	ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackPhotonAccelFirstPassStateObject;
     WRAPPED_GPU_POINTER m_fallbackTopLevelAccelerationStructurePointer;
 
     // DirectX Raytracing (DXR) attributes
@@ -64,6 +66,7 @@ private:
     ComPtr<ID3D12GraphicsCommandList5> m_dxrCommandList;
     ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
+	ComPtr<ID3D12StateObject> m_dxrPhotonAccelFirstPassStateObject;
     bool m_isDxrSupported;
 
     // Root signatures for the first pass
@@ -73,6 +76,10 @@ private:
 	// Root signatures for the second pass
 	ComPtr<ID3D12RootSignature> m_secondPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_secondPassLocalRootSignature;
+
+	// Root signatures for photon accel first pass
+	ComPtr<ID3D12RootSignature> m_photonAccelFirstPassGlobalRootSignature;
+	ComPtr<ID3D12RootSignature> m_photonAccelFirstPassLocalRootSignature;
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
@@ -103,7 +110,7 @@ private:
 
     std::vector<GBuffer> m_gBuffers;
 
-	
+	GBuffer m_photonCountBuffer;
 
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
@@ -136,6 +143,7 @@ private:
 
 	ShaderTableRes m_firstPassShaderTableRes;
 	ShaderTableRes m_secondPassShaderTableRes;
+	ShaderTableRes m_photonAccelFirstPassShaderTableRes;
 
 
     // Application state
@@ -155,6 +163,7 @@ private:
     void RecreateD3D();
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
+	void DoPhotonAccelFirstPassPhotonMapping();
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -164,16 +173,20 @@ private:
     void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateFirstPassRootSignatures();
     void CreateSecondPassRootSignatures();
+	void CreatePhotonAccelFirstPassRootSignatures();
     void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateFirstPassPhotonPipelineStateObject();
     void CreateSecondPassPhotonPipelineStateObject();
+	void CreatePhotonAccelFirstPassPipelineStateObject();
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();
+	void CreatePhotonCountBuffer();
     void BuildGeometry();
     void BuildAccelerationStructures();
     void BuildFirstPassShaderTables();
     void BuildSecondPassShaderTables();
+	void BuildPhotonAccelFirstPassShaderTables();
     void SelectRaytracingAPI(RaytracingAPI type);
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();

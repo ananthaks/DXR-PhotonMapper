@@ -411,7 +411,8 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 
 inline float3 WorldToColor(float3 worldPosition)
 {
-	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
+	return worldPosition;
+	//return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
 }
 
 

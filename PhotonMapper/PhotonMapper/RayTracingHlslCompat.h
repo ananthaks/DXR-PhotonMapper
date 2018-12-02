@@ -22,7 +22,7 @@ typedef UINT16 Index;
 #endif
 
 #define MAX_RAY_RECURSION_DEPTH 5
-#define MAX_SCENE_SIZE 100
+#define MAX_SCENE_SIZE 100.0
 
 struct SceneConstantBuffer
 {

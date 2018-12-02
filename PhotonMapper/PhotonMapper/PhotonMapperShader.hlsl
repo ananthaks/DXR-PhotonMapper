@@ -393,7 +393,8 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 
 inline float3 ColorToWorld(float3 color)
 {
-	return ((color - float3(0.5f, 0.5f, 0.5f)) * (2.0f * MAX_SCENE_SIZE));
+	return color;
+	//return ((color - float3(0.5f, 0.5f, 0.5f)) * (2.0f * MAX_SCENE_SIZE));
 }
 
 inline float4 GetAvgPhotonColor(float3 intersectionPoint)
