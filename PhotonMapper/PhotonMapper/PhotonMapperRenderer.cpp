@@ -574,11 +574,15 @@ void PhotonMapperRenderer::CreateGBuffers()
 
     // TODO Might change later.
     int width = sqrt(NumPhotons);
+	int log = ilog2ceil(width); // For exclusive scan, number of elements need to be power of 2
+	width = pow(2, log);
     int height = width;
+	/*
     if (NumPhotons % width != 0)
     {
         height++;
     }
+	*/
     m_gBufferWidth = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, width);
     m_gBufferHeight = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, height);
     //m_gBufferWidth = min(16384, NumPhotons); // m_width * m_height;
@@ -1493,8 +1497,18 @@ void PhotonMapperRenderer::OnRender()
 
 		m_calculatePhotonMap = false;
 
-		DoComputePass(m_computeFirstPassPSO, m_width, m_height, 1);
-		DoComputePass(m_computeSecondPassPSO, m_width, m_height, 1);
+		int numItems = MAX_SCENE_SIZE * MAX_SCENE_SIZE * MAX_SCENE_SIZE;
+		int totalLevels = ilog2ceil(numItems);
+
+		for (int level = 0; level <= totalLevels; level++) {
+			int levelPowerOne = pow(2, level + 1);
+			int levelPower = pow(2, level);
+			// TODO pass these in buffer
+
+			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
+		}
+
+		DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
 	}
 
 	//DoSecondPassPhotonMapping();

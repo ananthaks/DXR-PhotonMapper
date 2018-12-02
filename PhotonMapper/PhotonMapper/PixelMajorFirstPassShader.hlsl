@@ -421,7 +421,16 @@ uint3 PosToCellId(float3 worldPosition)
 
 uint Cell3DTo1D(uint3 cellId)
 {
+	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
+}
 
+uint3 Cell1DTo3D(uint id)
+{
+	uint3 temp;
+	temp.x = id % MAX_SCENE_SIZE;
+	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
+	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
+	return temp;
 }
 
 
