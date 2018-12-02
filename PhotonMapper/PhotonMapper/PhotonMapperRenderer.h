@@ -218,6 +218,7 @@ private:
     void SelectRaytracingAPI(RaytracingAPI type);
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void CopyRaytracingOutputToBackbuffer();
+	void CopyUAVData(GBuffer& source, GBuffer& destination);
     void CopyGBUfferToBackBuffer(UINT gbufferIndex);
     void CalculateFrameStats();
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);

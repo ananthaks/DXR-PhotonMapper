@@ -1394,6 +1394,26 @@ void PhotonMapperRenderer::CopyRaytracingOutputToBackbuffer()
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
+// Copy data from one UAV to another.
+void PhotonMapperRenderer::CopyUAVData(GBuffer& source, GBuffer& destination)
+{
+	auto commandList = m_deviceResources->GetCommandList();
+	auto renderTarget = m_deviceResources->GetRenderTarget();
+
+	D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+	preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
+	commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+
+	commandList->CopyResource(source.textureResource.Get(), destination.textureResource.Get());
+
+	D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+	postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
+}
+
 void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 {
     if (m_gBuffers.size() > gbufferIndex)
