@@ -26,6 +26,7 @@ namespace ComputeRootSignatureParams
 	enum Value
 	{
 		OutputViewSlot = 0,
+		ParamConstantBuffer,
 		Count
 	};
 }

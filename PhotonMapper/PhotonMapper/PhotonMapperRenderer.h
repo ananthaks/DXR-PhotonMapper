@@ -40,6 +40,8 @@ private:
     static const UINT FrameCount = 3;
     static const UINT NumGBuffers = 3;
     static const UINT NumPhotonCountBuffer = 1;
+    static const UINT NumPhotonScanBuffer = 1;
+    static const UINT NumPhotonTempIndexBuffer = 1;
     static const UINT NumPhotons = 1000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
@@ -50,8 +52,18 @@ private:
         SceneConstantBuffer constants;
         uint8_t alignmentPadding[D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT];
     };
+
+	union AlignedComputeConstantBuffer
+	{
+		PixelMajorComputeConstantBuffer constants;
+		uint8_t alignmentPadding[D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT];
+	};
+
     AlignedSceneConstantBuffer*  m_mappedConstantData;
     ComPtr<ID3D12Resource>       m_perFrameConstants;
+
+	AlignedComputeConstantBuffer*  m_mappedComputeConstantData;
+	ComPtr<ID3D12Resource> m_computeConstantRes;
 
     // Raytracing Fallback Layer (FL) attributes
     ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
@@ -93,6 +105,10 @@ private:
     // Raytracing scene
     SceneConstantBuffer m_sceneCB[FrameCount];
     CubeConstantBuffer m_cubeCB;
+
+	// Compute Constant Buffer
+	PixelMajorComputeConstantBuffer m_computeConstantBuffer;
+
 
     // Geometry
     struct D3DBuffer
@@ -173,6 +189,8 @@ private:
 	void DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, int xThreads, int yThreads, int zThreads);
 
     void CreateConstantBuffers();
+	void CreateComputeConstantBuffer();
+
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
     void ReleaseDeviceDependentResources();

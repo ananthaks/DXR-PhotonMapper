@@ -1,3 +1,9 @@
+#ifndef COMPUTE_PASS_1
+#define COMPUTE_PASS_1
+
+#define HLSL
+#include "RaytracingHlslCompat.h"
+
 #define blocksize 128
 
 #define HLSL
@@ -8,16 +14,14 @@ RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
 RWTexture2DArray<uint> GPhotonCount : register(u1);
-RWTexture2DArray<float4> GPhotonPos : register(u2);
-RWTexture2DArray<float4> GPhotonColor : register(u3);
-RWTexture2DArray<float4> GPhotonNorm : register(u4);
+RWTexture2DArray<uint> GPhotonScan : register(u2);
+RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
 
-/*
-cbuffer globals : register(b0) {
-	uint levelPowerOne;
-	uint levelPower;
-};
-*/
+RWTexture2DArray<float4> GPhotonPos : register(u4);
+RWTexture2DArray<float4> GPhotonColor : register(u5);
+RWTexture2DArray<float4> GPhotonNorm : register(u6);
+
+ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
 uint3 PosToCellId(float3 worldPosition)
 {
@@ -44,9 +48,12 @@ uint3 Cell1DTo3D(uint id)
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	int index = DTid.x; // TODO ???? Our threads are 1D
-	//int divide = index / levelPowerOne;
+	int divide = index / CKernelParams.param1;
 
-	//if (index - (divide * levelPowerOne) == 0) {
-	//	GPhotonCount[Cell1DTo3D(index + levelPowerOne - 1)] += GPhotonCount[Cell1DTo3D(index + levelPower - 1)]; // TODO change to scan buffer
-	//}
+	if (index - (divide * CKernelParams.param1) == 0) {
+		GPhotonCount[Cell1DTo3D(index + CKernelParams.param1 - 1)] += GPhotonCount[Cell1DTo3D(index + CKernelParams.param2 - 1)]; // TODO change to scan buffer
+	}
+
 }
+
+#endif // COMPUTE_PASS_1

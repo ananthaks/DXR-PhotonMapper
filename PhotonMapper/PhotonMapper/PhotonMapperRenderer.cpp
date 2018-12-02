@@ -190,6 +190,31 @@ void PhotonMapperRenderer::CreateConstantBuffers()
     ThrowIfFailed(m_perFrameConstants->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedConstantData)));
 }
 
+// Create constant buffers.
+void PhotonMapperRenderer::CreateComputeConstantBuffer()
+{
+	auto device = m_deviceResources->GetD3DDevice();
+
+	// Create the constant buffer memory and map the CPU and GPU addresses
+	const D3D12_HEAP_PROPERTIES uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+
+	size_t cbSize = sizeof(AlignedComputeConstantBuffer);
+	const D3D12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(cbSize);
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&constantBufferDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_computeConstantRes)));
+
+	// Map the constant buffer and cache its heap pointers.
+	// We don't unmap this until the app closes. Keeping buffer mapped for the lifetime of the resource is okay.
+	CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+	ThrowIfFailed(m_computeConstantRes->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedComputeConstantData)));
+}
+
 // Create resources that depend on the device.
 void PhotonMapperRenderer::CreateDeviceDependentResources()
 {
@@ -223,6 +248,9 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
     // Create constant buffers for the geometry and the scene.
     CreateConstantBuffers();
+
+	// Create constant buffers for the compute pipeline
+	CreateComputeConstantBuffer();
 
     // Build shader tables, which define shaders and their local root arguments.
     BuildFirstPassShaderTables();
@@ -261,7 +289,7 @@ void PhotonMapperRenderer::CreateFirstPassRootSignatures()
     {
 		// TODO: Remove the unnecessary UAV (RenderTarget) from first pass
         CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
-        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);  // 1 output texture + a couple of GBuffers
+        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer + NumPhotonScanBuffer + NumPhotonTempIndexBuffer, 0);  // 1 output texture + a couple of GBuffers
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
@@ -296,7 +324,7 @@ void PhotonMapperRenderer::CreateSecondPassRootSignatures()
 	// This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
 	{
 		CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);  // 1 output texture + a couple of GBuffers
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer + NumPhotonScanBuffer + NumPhotonTempIndexBuffer, 0);  // 1 output texture + a couple of GBuffers
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
 
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
@@ -327,10 +355,11 @@ void PhotonMapperRenderer::CreateComputeFirstPassRootSignature()
 {
 	auto device = m_deviceResources->GetD3DDevice();
 	CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer, 0);
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers + NumPhotonCountBuffer + NumPhotonScanBuffer + NumPhotonTempIndexBuffer, 0);
 
 	CD3DX12_ROOT_PARAMETER1 rootParameters[ComputeRootSignatureParams::Count];
 	rootParameters[ComputeRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+	rootParameters[ComputeRootSignatureParams::ParamConstantBuffer].InitAsConstantBufferView(0); // TODO: Not yet ready
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC computeRootSignatureDesc;
 	computeRootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr);
@@ -617,9 +646,7 @@ void PhotonMapperRenderer::CreateGBuffers()
         gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
 
         m_gBuffers.push_back(gBuffer);
-    }
-
-    
+    }   
 }
 
 void PhotonMapperRenderer::CreatePhotonCountBuffer()
@@ -665,7 +692,7 @@ void PhotonMapperRenderer::CreateDescriptorHeap()
     // 1 - raytracing output texture SRV
     // 3 - G Buffers
     // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers + NumPhotonCountBuffer;
+    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers + NumPhotonCountBuffer + NumPhotonScanBuffer + NumPhotonTempIndexBuffer;
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -829,8 +856,6 @@ void PhotonMapperRenderer::BuildAccelerationStructures()
 
     vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
     geometryDescs.push_back(geometryDesc);
-
-
 
     // Get required sizes for an acceleration structure.
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -1335,6 +1360,11 @@ void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO
 	commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
 	commandList->SetComputeRootDescriptorTable(ComputeRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
 
+	// Copy the updated scene constant buffer to GPU.
+	memcpy(&m_mappedComputeConstantData[0].constants, &m_computeConstantBuffer, sizeof(m_computeConstantBuffer));
+	auto cbGpuAddress = m_computeConstantRes->GetGPUVirtualAddress();
+	commandList->SetComputeRootConstantBufferView(ComputeRootSignatureParams::ParamConstantBuffer, cbGpuAddress);
+
 	commandList->Dispatch(xThreads, yThreads, zThreads);
 }
 
@@ -1441,6 +1471,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
     m_vertexBuffer.resource.Reset();
     m_perFrameConstants.Reset();
 
+	m_computeConstantRes.Reset();
+
 	m_firstPassShaderTableRes.m_rayGenShaderTable.Reset();
 	m_firstPassShaderTableRes.m_missShaderTable.Reset();
 	m_firstPassShaderTableRes.m_hitGroupShaderTable.Reset();
@@ -1504,6 +1536,8 @@ void PhotonMapperRenderer::OnRender()
 			int levelPowerOne = pow(2, level + 1);
 			int levelPower = pow(2, level);
 			// TODO pass these in buffer
+			m_computeConstantBuffer.param1 = levelPowerOne;
+			m_computeConstantBuffer.param2 = levelPower;
 
 			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
 		}
