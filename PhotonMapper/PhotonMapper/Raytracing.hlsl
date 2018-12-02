@@ -104,8 +104,6 @@ inline void GenerateCameraRay(uint2 index, out float3 origin, out float3 directi
     direction = normalize(world.xyz - origin);
 }
 
-
-
 inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 pixelIndex, out bool inRange)
 {
     float4 clippingCoord = mul(float4(rayHitPosition, 1), g_sceneCB.viewProj);

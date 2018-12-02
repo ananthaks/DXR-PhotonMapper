@@ -66,6 +66,11 @@ private:
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
     bool m_isDxrSupported;
 
+	// Compute Stage attributes
+	ComPtr<ID3D12PipelineState> m_computeState;
+
+
+
     // Root signatures for the first pass
     ComPtr<ID3D12RootSignature> m_firstPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_firstPassLocalRootSignature;
@@ -73,6 +78,10 @@ private:
 	// Root signatures for the second pass
 	ComPtr<ID3D12RootSignature> m_secondPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_secondPassLocalRootSignature;
+
+	// Root signature for the compute pass
+    ComPtr<ID3D12RootSignature> m_computeRootSignature;
+
 
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
@@ -153,8 +162,11 @@ private:
     void UpdateCameraMatrices();
     void InitializeScene();
     void RecreateD3D();
+
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
+	void DoComputePass();
+
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -162,11 +174,16 @@ private:
     void ReleaseWindowSizeDependentResources();
     void CreateRaytracingInterfaces();
     void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
+
     void CreateFirstPassRootSignatures();
     void CreateSecondPassRootSignatures();
+	void CreateComputeFirstPassRootSignature();
+
+
     void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateFirstPassPhotonPipelineStateObject();
     void CreateSecondPassPhotonPipelineStateObject();
+	void CreateComputePipelineStateObject();
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();

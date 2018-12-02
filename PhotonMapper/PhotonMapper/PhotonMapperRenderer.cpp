@@ -198,10 +198,14 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateFirstPassRootSignatures();
     CreateSecondPassRootSignatures();
 
+	CreateComputeFirstPassRootSignature();
+
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
 	CreateFirstPassPhotonPipelineStateObject();
 	CreateSecondPassPhotonPipelineStateObject();
+
+	CreateComputePipelineStateObject();
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
@@ -312,6 +316,24 @@ void PhotonMapperRenderer::CreateSecondPassRootSignatures()
 		localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
 		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &m_secondPassLocalRootSignature);
 	}
+}
+
+void PhotonMapperRenderer::CreateComputeFirstPassRootSignature()
+{
+	auto device = m_deviceResources->GetD3DDevice();
+	CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1 + NumGBuffers, 0);
+
+	CD3DX12_ROOT_PARAMETER1 rootParameters[ComputeRootSignatureParams::Count];
+	rootParameters[ComputeRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+
+	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC computeRootSignatureDesc;
+	computeRootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr);
+
+	ComPtr<ID3DBlob> signature;
+	ComPtr<ID3DBlob> error;
+	ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&computeRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+	ThrowIfFailed(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_computeRootSignature)));
 }
 
 // Create raytracing device and command list.
@@ -498,6 +520,22 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 	{
 		ThrowIfFailed(m_dxrDevice->CreateStateObject(raytracingPipeline, IID_PPV_ARGS(&m_dxrSecondPassStateObject)), L"Couldn't create DirectX Raytracing state object.\n");
 	}
+}
+
+void PhotonMapperRenderer::CreateComputePipelineStateObject()
+{
+	auto device = m_deviceResources->GetD3DDevice();
+
+	UINT fileSize = 0;
+	UINT8* shader;
+	ThrowIfFailed(ReadDataFromFile(GetAssetFullPath(L"PixelMajorComputeShader.cso").c_str(), &shader, &fileSize));
+
+	// Describe and create the compute pipeline state object (PSO).
+	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
+	computePsoDesc.pRootSignature = m_computeRootSignature.Get();
+	computePsoDesc.CS = CD3DX12_SHADER_BYTECODE((void *)shader, fileSize);
+
+	ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_computeState)));
 }
 
 // Create 2D output texture for raytracing.
@@ -1242,7 +1280,20 @@ void PhotonMapperRenderer::DoSecondPassPhotonMapping()
 		commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
 		DispatchRays(m_dxrCommandList.Get(), m_dxrSecondPassStateObject.Get(), &dispatchDesc);
 	}
+}
 
+void PhotonMapperRenderer::DoComputePass()
+{
+	auto commandList = m_deviceResources->GetCommandList();
+	auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
+
+	commandList->SetPipelineState(m_computeState.Get());
+	commandList->SetComputeRootSignature(m_computeRootSignature.Get());
+
+	commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
+	commandList->SetComputeRootDescriptorTable(ComputeRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+
+	commandList->Dispatch(m_width, m_height, 1);
 }
 
 // Update the application state with the new resolution.
@@ -1395,9 +1446,11 @@ void PhotonMapperRenderer::OnRender()
 		// CopyGBUfferToBackBuffer(0U);
 
 		m_calculatePhotonMap = false;
+
+		DoComputePass();
 	}
 
-	DoSecondPassPhotonMapping();
+	//DoSecondPassPhotonMapping();
 	CopyRaytracingOutputToBackbuffer();
 	//CopyGBUfferToBackBuffer(0U);
 

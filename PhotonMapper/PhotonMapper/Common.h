@@ -20,3 +20,12 @@ namespace LocalRootSignatureParams
         Count 
     };
 }
+
+namespace ComputeRootSignatureParams
+{
+	enum Value
+	{
+		OutputViewSlot = 0,
+		Count
+	};
+}
