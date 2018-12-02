@@ -67,7 +67,8 @@ private:
     bool m_isDxrSupported;
 
 	// Compute Stage attributes
-	ComPtr<ID3D12PipelineState> m_computeState;
+	ComPtr<ID3D12PipelineState> m_computeFirstPassPSO;
+	ComPtr<ID3D12PipelineState> m_computeSecondPassPSO;
 
 
 
@@ -136,6 +137,9 @@ private:
     static const wchar_t* c_closestHitShaderName;
     static const wchar_t* c_missShaderName;
 
+    static const LPCWSTR c_computeShaderPass1;
+    static const LPCWSTR c_computeShaderPass2;
+
 	struct ShaderTableRes
 	{
 		ComPtr<ID3D12Resource> m_missShaderTable;
@@ -165,7 +169,7 @@ private:
 
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
-	void DoComputePass();
+	void DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, int xThreads, int yThreads, int zThreads);
 
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
@@ -183,7 +187,7 @@ private:
     void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateFirstPassPhotonPipelineStateObject();
     void CreateSecondPassPhotonPipelineStateObject();
-	void CreateComputePipelineStateObject();
+	void CreateComputePipelineStateObject(const LPCWSTR& compiledShaderName, ComPtr<ID3D12PipelineState>& computePipeline);
     void CreateDescriptorHeap();
     void CreateRaytracingOutputResource();
     void CreateGBuffers();

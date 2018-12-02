@@ -23,6 +23,10 @@ const wchar_t* PhotonMapperRenderer::c_raygenShaderName = L"MyRaygenShader";
 const wchar_t* PhotonMapperRenderer::c_closestHitShaderName = L"MyClosestHitShader";
 const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 
+const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
+const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
+
+
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
 	DXSample(width, height, name),
 	m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
@@ -205,7 +209,8 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 	CreateFirstPassPhotonPipelineStateObject();
 	CreateSecondPassPhotonPipelineStateObject();
 
-	CreateComputePipelineStateObject();
+	CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
+	CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
@@ -522,20 +527,20 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
 	}
 }
 
-void PhotonMapperRenderer::CreateComputePipelineStateObject()
+void PhotonMapperRenderer::CreateComputePipelineStateObject(const LPCWSTR& compiledShaderName, ComPtr<ID3D12PipelineState>& computePipeline)
 {
 	auto device = m_deviceResources->GetD3DDevice();
 
 	UINT fileSize = 0;
 	UINT8* shader;
-	ThrowIfFailed(ReadDataFromFile(GetAssetFullPath(L"PixelMajorComputeShader.cso").c_str(), &shader, &fileSize));
+	ThrowIfFailed(ReadDataFromFile(GetAssetFullPath(compiledShaderName).c_str(), &shader, &fileSize));
 
 	// Describe and create the compute pipeline state object (PSO).
 	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
 	computePsoDesc.pRootSignature = m_computeRootSignature.Get();
 	computePsoDesc.CS = CD3DX12_SHADER_BYTECODE((void *)shader, fileSize);
 
-	ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_computeState)));
+	ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&computePipeline)));
 }
 
 // Create 2D output texture for raytracing.
@@ -1282,18 +1287,18 @@ void PhotonMapperRenderer::DoSecondPassPhotonMapping()
 	}
 }
 
-void PhotonMapperRenderer::DoComputePass()
+void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, int xThreads, int yThreads, int zThreads)
 {
 	auto commandList = m_deviceResources->GetCommandList();
 	auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
 
-	commandList->SetPipelineState(m_computeState.Get());
+	commandList->SetPipelineState(computePSO.Get());
 	commandList->SetComputeRootSignature(m_computeRootSignature.Get());
 
 	commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
 	commandList->SetComputeRootDescriptorTable(ComputeRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
 
-	commandList->Dispatch(m_width, m_height, 1);
+	commandList->Dispatch(xThreads, yThreads, zThreads);
 }
 
 // Update the application state with the new resolution.
@@ -1447,7 +1452,8 @@ void PhotonMapperRenderer::OnRender()
 
 		m_calculatePhotonMap = false;
 
-		DoComputePass();
+		DoComputePass(m_computeFirstPassPSO, m_width, m_height, 1);
+		DoComputePass(m_computeSecondPassPSO, m_width, m_height, 1);
 	}
 
 	//DoSecondPassPhotonMapping();

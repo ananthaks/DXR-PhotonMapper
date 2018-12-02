@@ -129,7 +129,10 @@
     <FxCompile Include="PhotonMajorThirdPassShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="PixelMajorComputeShader.hlsl">
+    <FxCompile Include="PixelMajorComputePass1.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelMajorComputePass2.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
