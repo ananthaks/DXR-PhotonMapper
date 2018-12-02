@@ -20,12 +20,32 @@ RWTexture2DArray<float4> GPhotonNorm : register(u6);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
+uint Cell3DTo1D(uint3 cellId)
+{
+	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
+}
+
+uint3 Cell1DTo3D(uint id)
+{
+	uint3 temp;
+	temp.x = id % MAX_SCENE_SIZE;
+	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
+	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
+	return temp;
+}
+
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
-	// Each thread of the CS updates one of the particles.
-	//float4 pos = GPhotonPos[DTid];
-	RenderTarget[DTid.xy] = float4(1.0, 0.0, 0.0, 1.0);
+	int index = DTid.x; // TODO ???? Our threads are 1D
+
+	int divide = index / CKernelParams.param1;
+	if (index - (divide * CKernelParams.param1) == 0) {
+		int temp = GPhotonScan[Cell1DTo3D(index + CKernelParams.param2 - 1)];
+		GPhotonScan[Cell1DTo3D(index + CKernelParams.param2 - 1)] = GPhotonScan[Cell1DTo3D(index + CKernelParams.param1 - 1)];
+		GPhotonScan[Cell1DTo3D(index + CKernelParams.param1 - 1)] += temp;
+	}
+
 }
 
 #endif // COMPUTE_PASS_2
