@@ -82,6 +82,7 @@ private:
 	// Compute Stage attributes
 	ComPtr<ID3D12PipelineState> m_computeFirstPassPSO;
 	ComPtr<ID3D12PipelineState> m_computeSecondPassPSO;
+	ComPtr<ID3D12PipelineState> m_computeThirdPassPSO;
 
 
 
@@ -156,6 +157,7 @@ private:
 
     static const LPCWSTR c_computeShaderPass1;
     static const LPCWSTR c_computeShaderPass2;
+	static const LPCWSTR c_computeShaderPass3;
 
 	struct ShaderTableRes
 	{

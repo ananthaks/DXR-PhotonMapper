@@ -25,6 +25,7 @@ const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
+const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
 
 
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
@@ -236,6 +237,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
 	CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
 	CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
+	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
@@ -1455,6 +1457,7 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 
 	m_computeFirstPassPSO.Reset();
 	m_computeSecondPassPSO.Reset();
+	m_computeThirdPassPSO.Reset();
 
     m_descriptorHeap.Reset();
     m_descriptorsAllocated = 0;
@@ -1529,12 +1532,13 @@ void PhotonMapperRenderer::OnRender()
 
 		m_calculatePhotonMap = false;
 
-		int numItems = MAX_SCENE_SIZE * MAX_SCENE_SIZE * MAX_SCENE_SIZE;
+		int numItems = MAX_SCENE_SIZE3;
 		int totalLevels = ilog2ceil(numItems);
 
+		// Up-sweep
 		for (int level = 0; level <= totalLevels; level++) {
-			int levelPowerOne = pow(2, level + 1);
-			int levelPower = pow(2, level);
+			int levelPowerOne = 1 << (level + 1); // pow(2, level + 1);
+			int levelPower = 1 << level; // pow(2, level);
 			// TODO pass these in buffer
 			m_computeConstantBuffer.param1 = levelPowerOne;
 			m_computeConstantBuffer.param2 = levelPower;
@@ -1542,7 +1546,16 @@ void PhotonMapperRenderer::OnRender()
 			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
 		}
 
-		DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
+		for (int level = totalLevels - 1; level >= 0; level--) {
+			int levelPowerPlusOne = 1 << (level + 1);
+			int levelPower = 1 << level;
+
+			// Pass variables in bufer
+			m_computeConstantBuffer.param1 = levelPowerPlusOne;
+			m_computeConstantBuffer.param2 = levelPower;
+
+			DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
+		}
 	}
 
 	//DoSecondPassPhotonMapping();
