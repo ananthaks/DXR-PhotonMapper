@@ -1,5 +1,5 @@
-#ifndef PHOTON_MAPPER_HLSL
-#define PHOTON_MAPPER_HLSL
+#ifndef PHOTON_MAJOR_PRE_PASS
+#define PHOTON_MAJOR_PRE_PASS
 
 #define HLSL
 #include "RaytracingHlslCompat.h"
@@ -16,6 +16,7 @@ RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 RWTexture2DArray<float4> GPhotonPos : register(u5);
 RWTexture2DArray<float4> GPhotonColor : register(u6);
 
+
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
 StructuredBuffer<Vertex> Vertices : register(t2, space0);
@@ -28,36 +29,34 @@ typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload
 {
     float4 color;
+    float4 hitPosition;
+    float4 extraInfo; // [0] is shadowHit, [1] is bounce depth (starts at 0 -> MaxBounces)
+    float3 throughput;
+    float3 direction;
 };
 
 [shader("raygeneration")]
 void MyRaygenShader()
 {
-    uint2 index = uint2(DispatchRaysIndex().xy);
-
-    float channel_r = StagedRenderTarget_R[index];
-    float channel_g = StagedRenderTarget_G[index];
-    float channel_b = StagedRenderTarget_B[index];
-    uint channel_a = StagedRenderTarget_A[index];
-
-    if (channel_a > 0)
-    {
-        float3 avgColor = float3(channel_r, channel_g, channel_b) / (channel_a * 255.f);
-        RenderTarget[index] = float4(avgColor, 1.0);
-    }
+    uint2 index = DispatchRaysIndex().xy;
+    
+    StagedRenderTarget_R[index] = 0;
+    StagedRenderTarget_G[index] = 0;
+    StagedRenderTarget_B[index] = 0;
+    StagedRenderTarget_A[index] = 0;
 }
 
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-
+    
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-
+    
 }
 
-#endif // PHOTON_MAPPER_HLSL
+#endif // PHOTON_MAJOR_PRE_PASS

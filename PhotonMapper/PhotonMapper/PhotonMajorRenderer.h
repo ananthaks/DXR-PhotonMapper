@@ -37,8 +37,9 @@ public:
 
 private:
     static const UINT FrameCount = 3;
+    static const UINT NumStagingBuffers = 4;
     static const UINT NumGBuffers = 2;
-    static const UINT NumRenderTargets = 2;
+    static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
@@ -57,6 +58,7 @@ private:
     ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
 
     // Fallback Pipeline State Objects for different passes
+    ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackPrePassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackThirdPassStateObject;
@@ -68,11 +70,16 @@ private:
     ComPtr<ID3D12GraphicsCommandList5> m_dxrCommandList;
 
     // DXR Pipeline State Objects for different passes
+    ComPtr<ID3D12StateObject> m_dxrPrePassStateObject;
     ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrThirdPassStateObject;
 
     bool m_isDxrSupported;
+
+    // Root signatures for the pre pass
+    ComPtr<ID3D12RootSignature> m_prePassGlobalRootSignature;
+    ComPtr<ID3D12RootSignature> m_prePassLocalRootSignature;
 
     // Root signatures for the first pass
     ComPtr<ID3D12RootSignature> m_firstPassGlobalRootSignature;
@@ -115,6 +122,7 @@ private:
     };
 
     std::vector<GBuffer> m_gBuffers;
+    std::vector<GBuffer> m_stagingBuffers;
 
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
@@ -146,6 +154,7 @@ private:
 		ComPtr<ID3D12Resource> m_rayGenShaderTable;
 	};
 
+	ShaderTableRes m_prePassShaderTableRes;
 	ShaderTableRes m_firstPassShaderTableRes;
 	ShaderTableRes m_secondPassShaderTableRes;
 	ShaderTableRes m_thirdPassShaderTableRes;
@@ -166,6 +175,7 @@ private:
     void InitializeScene();
     void RecreateD3D();
 
+    void DoPrePassPhotonMapping();
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
     void DoThirdPassPhotonMapping();
@@ -178,12 +188,14 @@ private:
     void CreateRaytracingInterfaces();
     void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
 
+    void CreatePrePassRootSignatures();
     void CreateFirstPassRootSignatures();
     void CreateSecondPassRootSignatures();
     void CreateThirdPassRootSignatures();
 
     void CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig);
 
+    void CreatePrePassPhotonPipelineStateObject();
     void CreateFirstPassPhotonPipelineStateObject();
     void CreateSecondPassPhotonPipelineStateObject();
     void CreateThirdPassPhotonPipelineStateObject();
@@ -195,6 +207,7 @@ private:
     void BuildGeometry();
     void BuildAccelerationStructures();
 
+    void BuildPrePassShaderTables();
     void BuildFirstPassShaderTables();
     void BuildSecondPassShaderTables();
     void BuildThirdPassShaderTables();

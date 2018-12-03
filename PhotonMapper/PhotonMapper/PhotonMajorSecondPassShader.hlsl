@@ -6,11 +6,15 @@
 
 // Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
-RWTexture2D<float4> StagedRenderTarget : register(u1);
+
+RWTexture2D<uint> StagedRenderTarget_R : register(u1);
+RWTexture2D<uint> StagedRenderTarget_G : register(u2);
+RWTexture2D<uint> StagedRenderTarget_B : register(u3);
+RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 
 // G-Buffers
-RWTexture2DArray<float4> GPhotonPos : register(u2);
-RWTexture2DArray<float4> GPhotonColor : register(u3);
+RWTexture2DArray<float4> GPhotonPos : register(u5);
+RWTexture2DArray<float4> GPhotonColor : register(u6);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -79,18 +83,22 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
         float2 tempPixel = pixelPos;
         tempPixel /= screenDims;
 
-        float4 currentColor = StagedRenderTarget[pixelPos];
+        /*float4 currentColor = StagedRenderTarget[pixelPos];
         float4 newColor = float4(currentColor.xyz + photonColor.xyz, currentColor.w + 1.0f);
-        StagedRenderTarget[pixelPos] = newColor;
+        StagedRenderTarget[pixelPos] = newColor;*/
 
 		// There is a Compile error for InterLockAdd 
 		// Possible issue:
 		// 1. You cant call for float4?
 		// 2. missing header?
-		/*uint4 newColorValue = float4(photonColor.xyz, 1.0f);
-		uint4 newVal;
-		uint4 oldVal;
-		InterlockedAdd(StagedRenderTarget2[pixelPos], newVal, oldVal);*/
+
+        uint3 scaledColor = photonColor.xyz * 255.f;
+		uint4 newColorValue = float4(scaledColor, 1);
+
+		InterlockedAdd(StagedRenderTarget_R[pixelPos], newColorValue[0]);
+		InterlockedAdd(StagedRenderTarget_G[pixelPos], newColorValue[1]);
+		InterlockedAdd(StagedRenderTarget_B[pixelPos], newColorValue[2]);
+		InterlockedAdd(StagedRenderTarget_A[pixelPos], newColorValue[3]);
     }
 }
 

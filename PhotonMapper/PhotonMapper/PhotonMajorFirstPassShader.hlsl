@@ -6,11 +6,15 @@
 
 // Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
-RWTexture2D<float4> StagedRenderTarget : register(u1);
+
+RWTexture2D<uint> StagedRenderTarget_R : register(u1);
+RWTexture2D<uint> StagedRenderTarget_G : register(u2);
+RWTexture2D<uint> StagedRenderTarget_B : register(u3);
+RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 
 // G-Buffers
-RWTexture2DArray<float4> GPhotonPos : register(u2);
-RWTexture2DArray<float4> GPhotonColor : register(u3);
+RWTexture2DArray<float4> GPhotonPos : register(u5);
+RWTexture2DArray<float4> GPhotonColor : register(u6);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
