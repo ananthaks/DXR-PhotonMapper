@@ -15,6 +15,8 @@ RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 // G-Buffers
 RWTexture2DArray<float4> GPhotonPos : register(u5);
 RWTexture2DArray<float4> GPhotonColor : register(u6);
+RWTexture2DArray<float4> GPhotonNorm : register(u7);
+RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -489,6 +491,8 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
     GPhotonPos[g_index] = float4(hitPosition, 1);
 	GPhotonColor[g_index] = payload.color;
+    GPhotonNorm[g_index] = float4(triangleNormal, 1.0);
+    GPhotonTangent[g_index] = float4(tangent, 1.0);
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);

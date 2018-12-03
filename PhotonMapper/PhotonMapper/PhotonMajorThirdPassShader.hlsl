@@ -15,6 +15,8 @@ RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 // G-Buffers
 RWTexture2DArray<float4> GPhotonPos : register(u5);
 RWTexture2DArray<float4> GPhotonColor : register(u6);
+RWTexture2DArray<float4> GPhotonNorm : register(u7);
+RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);

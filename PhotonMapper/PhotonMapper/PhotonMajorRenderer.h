@@ -39,7 +39,7 @@ public:
 private:
     static const UINT FrameCount = 3;
     static const UINT NumStagingBuffers = 4;
-    static const UINT NumGBuffers = 2;
+    static const UINT NumGBuffers = 4;
     static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
 

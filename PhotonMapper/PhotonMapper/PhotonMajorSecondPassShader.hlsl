@@ -15,6 +15,8 @@ RWTexture2D<uint> StagedRenderTarget_A : register(u4);
 // G-Buffers
 RWTexture2DArray<float4> GPhotonPos : register(u5);
 RWTexture2DArray<float4> GPhotonColor : register(u6);
+RWTexture2DArray<float4> GPhotonNorm : register(u7);
+RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -47,7 +49,8 @@ inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 
     pixelIndex.y = ((1.0 - clippingCoord.y) * 0.5f) * screenDim.y;
 }
 
-inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 screenDims)
+
+ void TraceRayToCamera(float4 hitPosition, float2 screenDims, out bool didHit, out uint2 pixelHit)
 {
     // Find the Screen Space Coord for the photon
     uint2 pixelPos = uint2(500, 500);
@@ -56,6 +59,8 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
 
     if (!inRange) 
     {
+        didHit = false;
+        pixelHit = uint2(0, 0);
         return;
     }
 
@@ -77,29 +82,77 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float2 scree
     float4 extraInfo = shadowPayload.extraInfo;
     int shadowHit = extraInfo[0];
 
-    if (shadowHit == 0)
+    didHit = (shadowHit == 0);
+    pixelHit = pixelPos;
+}
+
+
+inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float4 photonNorm, float4 photonTangent, float2 screenDims)
+{
+    // Base Trace
+    bool didHit = false;
+    uint2 centerPixelPos;
+    TraceRayToCamera(hitPosition, screenDims, didHit, centerPixelPos);
+
+    if (didHit)
     {
         // Write the raytraced color to the output texture.
-        float2 tempPixel = pixelPos;
-        tempPixel /= screenDims;
-
-        /*float4 currentColor = StagedRenderTarget[pixelPos];
-        float4 newColor = float4(currentColor.xyz + photonColor.xyz, currentColor.w + 1.0f);
-        StagedRenderTarget[pixelPos] = newColor;*/
-
-		// There is a Compile error for InterLockAdd 
-		// Possible issue:
-		// 1. You cant call for float4?
-		// 2. missing header?
 
         uint3 scaledColor = photonColor.xyz * 255.f;
 		uint4 newColorValue = float4(scaledColor, 1);
-
-		InterlockedAdd(StagedRenderTarget_R[pixelPos], newColorValue[0]);
-		InterlockedAdd(StagedRenderTarget_G[pixelPos], newColorValue[1]);
-		InterlockedAdd(StagedRenderTarget_B[pixelPos], newColorValue[2]);
-		InterlockedAdd(StagedRenderTarget_A[pixelPos], newColorValue[3]);
+		
+        InterlockedAdd(StagedRenderTarget_R[centerPixelPos], newColorValue[0]);
+		InterlockedAdd(StagedRenderTarget_G[centerPixelPos], newColorValue[1]);
+		InterlockedAdd(StagedRenderTarget_B[centerPixelPos], newColorValue[2]);
+		InterlockedAdd(StagedRenderTarget_A[centerPixelPos], newColorValue[3]);
     }
+
+    /*
+    // TODO: This is a crude sampling code. Need to see if we can improve it. It is reducing the performing by a factor of 3 though
+
+    float4 normalizedTangent = float4(normalize(photonTangent).xyz, 1.0);
+
+    // Sample 1 Trace
+    bool didHit1 = false;
+    uint2 centerPixelPos1;
+    float4 newHitPos1 = hitPosition + normalizedTangent * SEARCH_RADIUS;
+    TraceRayToCamera(newHitPos1, screenDims, didHit1, centerPixelPos1);
+
+    if (didHit1 && didHit)
+    {
+        // Write the raytraced color to the output texture.
+
+        uint3 scaledColor1 = photonColor.xyz * 255.f * 0.5f;
+        uint4 newColorValue1 = float4(scaledColor1, 1);
+
+        InterlockedAdd(StagedRenderTarget_R[centerPixelPos1], newColorValue1[0]);
+        InterlockedAdd(StagedRenderTarget_G[centerPixelPos1], newColorValue1[1]);
+        InterlockedAdd(StagedRenderTarget_B[centerPixelPos1], newColorValue1[2]);
+        InterlockedAdd(StagedRenderTarget_A[centerPixelPos1], newColorValue1[3]);
+    }
+
+
+    // Sample 2 Trace
+    bool didHit2 = false;
+    uint2 centerPixelPos2;
+    float4 newHitPos2 = hitPosition - normalizedTangent * SEARCH_RADIUS;
+    TraceRayToCamera(newHitPos2, screenDims, didHit2, centerPixelPos2);
+
+    if (didHit2 && didHit)
+    {
+        // Write the raytraced color to the output texture.
+
+        uint3 scaledColor2 = photonColor.xyz * 255.f * 0.5f;
+        uint4 newColorValue2 = float4(scaledColor2, 1);
+
+        InterlockedAdd(StagedRenderTarget_R[centerPixelPos2], newColorValue2[0]);
+        InterlockedAdd(StagedRenderTarget_G[centerPixelPos2], newColorValue2[1]);
+        InterlockedAdd(StagedRenderTarget_B[centerPixelPos2], newColorValue2[2]);
+        InterlockedAdd(StagedRenderTarget_A[centerPixelPos2], newColorValue2[3]);
+    }
+
+    */
+
 }
 
 [shader("raygeneration")]
@@ -111,6 +164,8 @@ void MyRaygenShader()
 
         float4 photonPos = float4(GPhotonPos[g_index].xyz, 1.0);
         float4 photonCol = GPhotonColor[g_index];
+        float4 photonNorm = GPhotonNorm[g_index];
+        float4 photonTangent = GPhotonTangent[g_index];
 
         bool didPhotonIntersect = GPhotonPos[g_index].w > 0.0f;
 
@@ -120,7 +175,7 @@ void MyRaygenShader()
             RenderTarget.GetDimensions(width, height);
             float2 screenDims = float2(width, height);
 
-            VisualizePhoton(photonPos, photonCol, screenDims);
+            VisualizePhoton(photonPos, photonCol, photonNorm, photonTangent, screenDims);
         }
     }
 }

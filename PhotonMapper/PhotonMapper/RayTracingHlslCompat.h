@@ -44,6 +44,9 @@ typedef UINT16 Index;
 #define CELL_1D_TO_3D_Y(cellId) ((cellId / NUM_CELLS_IN_X) % NUM_CELLS_IN_Y)
 #define CELL_1D_TO_3D_Z(cellId) (cellId / (NUM_CELLS_IN_X * NUM_CELLS_IN_Y))
 
+// Photon Major
+#define NUM_SAMPLES 5
+#define SEARCH_RADIUS 0.01f
 
 struct SceneConstantBuffer
 {
