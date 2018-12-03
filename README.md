@@ -9,6 +9,38 @@ To implement an efficient Photon Mapper Renderer using DXR API.
 **Connie Chang**
 [LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
 
+# Milestone 3
+
+**Expectations**:
+1) Implementation of Spatial Data Structure
+
+**Achievements**:
+1) Construction of a custom spatial data mapping
+2) Camera controls
+
+**Photon Major rendering at 25 frames per second with 1 Million photons**
+![](Docs/Milestone3/photon_major_camera_controls.gif)
+
+## Cell structure
+![](Docs/images/cell_struct.png)
+
+## Hash Grids
+
+![](Docs/images/hash_grid.png)
+
+## Our Implementation
+
+![](Docs/images/custom.png)
+
+## Issues to be fixed
+1) Indexing issues in prixel major iterator
+
+## Future Tasks
+
+1) Scene Loading
+2) More materials
+3) Optimizations
+
 # Milestone 2
 
 ## Milestone Goals
