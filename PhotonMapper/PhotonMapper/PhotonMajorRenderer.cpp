@@ -30,7 +30,8 @@ PhotonMajorRenderer::PhotonMajorRenderer(UINT width, UINT height, std::wstring n
 	m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
 	m_curRotationAngleRad(0.0f),
 	m_isDxrSupported(false),
-	m_calculatePhotonMap(false)
+	m_calculatePhotonMap(false),
+    m_clearStagingBuffers(false)
 {
     m_forceComputeFallback = false;
     SelectRaytracingAPI(RaytracingAPI::FallbackLayer);
@@ -103,6 +104,8 @@ void PhotonMajorRenderer::UpdateCameraMatrices()
 
     m_sceneCB[frameIndex].projectionToWorld = XMMatrixInverse(nullptr, viewProj);
     m_sceneCB[frameIndex].viewProj = viewProj;
+
+    m_clearStagingBuffers = true;
 }
 
 // Initialize scene rendering parameters.
@@ -1447,6 +1450,85 @@ void PhotonMajorRenderer::OnKeyDown(UINT8 key)
     case '3': // DirectX Raytracing
         SelectRaytracingAPI(RaytracingAPI::DirectXRaytracing);
         break;
+
+    // Camera Movements
+    case 'W':
+    {
+    
+        XMMATRIX translate = XMMatrixTranslation(0, 0, 0.1f);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'S':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, 0, -0.1f);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'Q':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, 0.1f, 0);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'E':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, -0.1f, 0);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'A':
+    {
+        XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(3));
+
+        /*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
+        ref = ref - eye;
+        ref = glm::vec3(rotation * glm::vec4(ref, 1));
+        ref = ref + eye;
+        RecomputeAttributes();*/
+
+        XMVECTOR tempAt = m_at - m_eye;
+        tempAt = XMVector3Transform(tempAt, rotate);
+        m_at = tempAt + m_eye;
+
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'D':
+    {
+        XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(-3));
+
+        /*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
+        ref = ref - eye;
+        ref = glm::vec3(rotation * glm::vec4(ref, 1));
+        ref = ref + eye;
+        RecomputeAttributes();*/
+
+        XMVECTOR tempAt = m_at - m_eye;
+        tempAt = XMVector3Transform(tempAt, rotate);
+        m_at = tempAt + m_eye;
+
+        UpdateCameraMatrices();
+    }
+    break;
+
     default:
         break;
     }
@@ -1457,6 +1539,11 @@ void PhotonMajorRenderer::OnKeyDown(UINT8 key)
         // Raytracing API selection changed, recreate everything.
         RecreateD3D();
     }
+}
+
+void PhotonMajorRenderer::OnKeyUp()
+{
+    m_clearStagingBuffers = true;
 }
 
 // Update frame-based values.
@@ -1902,7 +1989,7 @@ void PhotonMajorRenderer::OnRender()
 
 	if (m_calculatePhotonMap)
 	{
-		DoPrePassPhotonMapping();
+		
 		DoFirstPassPhotonMapping();
 
 		// This is turned off for now, in order to test whether G Buffer was actually getting filled.
@@ -1915,9 +2002,17 @@ void PhotonMajorRenderer::OnRender()
 		// This functions essentially prepares the G-Buffer for the second pass
 		// CopyGBUfferToBackBuffer(0U);
 
+        DoPrePassPhotonMapping();
+
 		m_calculatePhotonMap = false;
 	}
 
+    if(m_clearStagingBuffers)
+    {
+        DoPrePassPhotonMapping();
+        m_clearStagingBuffers = false;
+    }
+    
 	DoSecondPassPhotonMapping();
 	DoThirdPassPhotonMapping();
 

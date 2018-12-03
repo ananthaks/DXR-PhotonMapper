@@ -45,6 +45,10 @@ void MyRaygenShader()
         float3 avgColor = float3(channel_r, channel_g, channel_b) / (channel_a * 255.f);
         RenderTarget[index] = float4(avgColor, 1.0);
     }
+    else
+    {
+        RenderTarget[index] = float4(0.0, 0.0, 0.0, 1.0);
+    }
 }
 
 

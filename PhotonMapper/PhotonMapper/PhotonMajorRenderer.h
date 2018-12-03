@@ -29,6 +29,7 @@ public:
     // Messages
     virtual void OnInit();
     virtual void OnKeyDown(UINT8 key);
+    virtual void OnKeyUp();
     virtual void OnUpdate();
     virtual void OnRender();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
@@ -163,6 +164,7 @@ private:
     RaytracingAPI m_raytracingAPI;
     bool m_forceComputeFallback;
 	bool m_calculatePhotonMap;
+	bool m_clearStagingBuffers;
     StepTimer m_timer;
     float m_curRotationAngleRad;
     XMVECTOR m_eye;
