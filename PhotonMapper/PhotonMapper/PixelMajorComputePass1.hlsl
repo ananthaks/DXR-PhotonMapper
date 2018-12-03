@@ -19,7 +19,9 @@ RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
 
 RWTexture2DArray<float4> GPhotonPos : register(u4);
 RWTexture2DArray<float4> GPhotonColor : register(u5);
-RWTexture2DArray<float4> GPhotonNorm : register(u6);
+RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
+RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
+
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
@@ -47,18 +49,21 @@ uint3 Cell1DTo3D(uint id)
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
-	int index = DTid.x; // TODO ???? Our threads are 1D
+	int index = DTid.x;
 
-	int divide = index / CKernelParams.param1;
+	const int two_d = CKernelParams.param1;
+	const int two_d_1 = two_d * 2;
 
-	if (index - (divide * CKernelParams.param1) == 0) {
-
-		uint addNewData = GPhotonCount[Cell1DTo3D(index + CKernelParams.param2 - 1)];
-		uint currentData = GPhotonCount[Cell1DTo3D(index + CKernelParams.param1 - 1)];
-
-		GPhotonCount[Cell1DTo3D(index + CKernelParams.param1 - 1)] = (index != MAX_SCENE_SIZE3 - 1) ? (currentData + addNewData) : 0;
+	if (index % two_d_1 != 0)
+	{
+		return;
 	}
 
+	const int oldIndex = index + two_d - 1;
+	const int newIndex = index + two_d_1 - 1;
+
+	const int currData = GPhotonScan[Cell1DTo3D(newIndex)];
+	GPhotonScan[Cell1DTo3D(newIndex)] = newIndex != (MAX_SCENE_SIZE3 - 1) ? currData + GPhotonScan[Cell1DTo3D(newIndex)] : 0;
 }
 
 #endif // COMPUTE_PASS_1

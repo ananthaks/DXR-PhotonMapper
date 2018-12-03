@@ -7,7 +7,7 @@
 #define blocksize 128
 
 // Render Target for visualizing the photons - can be removed later on
-RWTexture2D<float4> RenderTarget : register(u0); 
+RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
 RWTexture2DArray<uint> GPhotonCount : register(u1);
@@ -16,7 +16,8 @@ RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
 
 RWTexture2DArray<float4> GPhotonPos : register(u4);
 RWTexture2DArray<float4> GPhotonColor : register(u5);
-RWTexture2DArray<float4> GPhotonNorm : register(u6);
+RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
+RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
@@ -34,18 +35,29 @@ uint3 Cell1DTo3D(uint id)
 	return temp;
 }
 
+// Downsweep
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	int index = DTid.x; // TODO ???? Our threads are 1D
+	
+	const int two_d = CKernelParams.param1;
+	const int two_d_1 = two_d * 2;
 
-	int divide = index / CKernelParams.param1;
-	if (index - (divide * CKernelParams.param1) == 0) {
-		int temp = GPhotonScan[Cell1DTo3D(index + CKernelParams.param2 - 1)];
-		GPhotonScan[Cell1DTo3D(index + CKernelParams.param2 - 1)] = GPhotonScan[Cell1DTo3D(index + CKernelParams.param1 - 1)];
-		GPhotonScan[Cell1DTo3D(index + CKernelParams.param1 - 1)] += temp;
+	if (index % two_d_1 != 0)
+	{
+		return;
 	}
 
+	const int oldIndex = index + two_d - 1;
+	const int newIndex = index + two_d_1 - 1;
+
+	const int dataAtNewIndex = GPhotonScan[Cell1DTo3D(newIndex)];
+
+	const int t = GPhotonScan[Cell1DTo3D(oldIndex)];
+
+	GPhotonScan[Cell1DTo3D(oldIndex)] = dataAtNewIndex;
+	GPhotonScan[Cell1DTo3D(newIndex)] = t + GPhotonScan[Cell1DTo3D(newIndex)];
 }
 
 #endif // COMPUTE_PASS_2

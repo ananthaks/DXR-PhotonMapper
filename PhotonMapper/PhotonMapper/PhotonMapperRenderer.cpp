@@ -226,18 +226,18 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
     // Create root signatures for the shaders.
     CreateFirstPassRootSignatures();
-    CreateSecondPassRootSignatures();
+    //CreateSecondPassRootSignatures();
 
-	CreateComputeFirstPassRootSignature();
+	//CreateComputeFirstPassRootSignature();
 
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
 	CreateFirstPassPhotonPipelineStateObject();
-	CreateSecondPassPhotonPipelineStateObject();
+	//CreateSecondPassPhotonPipelineStateObject();
 
-	CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
+	/*CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
 	CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
-	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);
+	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);*/
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
@@ -256,7 +256,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
     // Build shader tables, which define shaders and their local root arguments.
     BuildFirstPassShaderTables();
-    BuildSecondPassShaderTables();
+    //BuildSecondPassShaderTables();
 
     // Create an output 2D texture to store the raytracing result to.
 
@@ -629,6 +629,7 @@ void PhotonMapperRenderer::CreateGBuffers()
 
     m_gBuffers.clear();
 
+
     for (int i = 0; i < NumGBuffers; ++i)
     {
         GBuffer gBuffer = {};
@@ -651,7 +652,7 @@ void PhotonMapperRenderer::CreateGBuffers()
     }   
 }
 
-void PhotonMapperRenderer::CreatePhotonCountBuffer()
+void PhotonMapperRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
 {
 	// Create a buffer for hash grid construction
 	// A texture that stores the number of photons in each cell
@@ -665,23 +666,20 @@ void PhotonMapperRenderer::CreatePhotonCountBuffer()
 	auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_UINT, MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-	GBuffer tempBuffer = {};
+	gBuffer = {};
 
 	ThrowIfFailed(device->CreateCommittedResource(
-		&defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&tempBuffer.textureResource)));
-	NAME_D3D12_OBJECT(tempBuffer.textureResource);
+		&defaultHeapProperties, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&gBuffer.textureResource)));
 
-	tempBuffer.uavDescriptorHeapIndex = UINT_MAX;
+	gBuffer.uavDescriptorHeapIndex = UINT_MAX;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
-	tempBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, tempBuffer.uavDescriptorHeapIndex);
+	gBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, gBuffer.uavDescriptorHeapIndex);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
 	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
 	UAVDesc.Texture2DArray.ArraySize = MAX_SCENE_SIZE;
-	device->CreateUnorderedAccessView(tempBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
-	tempBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), tempBuffer.uavDescriptorHeapIndex, m_descriptorSize);
-
-	m_photonCountBuffer = tempBuffer;
+	device->CreateUnorderedAccessView(gBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
+	gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
 }
 
 void PhotonMapperRenderer::CreateDescriptorHeap()
@@ -1403,15 +1401,15 @@ void PhotonMapperRenderer::CopyUAVData(GBuffer& source, GBuffer& destination)
 	auto renderTarget = m_deviceResources->GetRenderTarget();
 
 	D3D12_RESOURCE_BARRIER preCopyBarriers[2];
-	preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
+	preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
+	preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
 
-	commandList->CopyResource(source.textureResource.Get(), destination.textureResource.Get());
+	commandList->CopyResource(destination.textureResource.Get(), source.textureResource.Get());
 
 	D3D12_RESOURCE_BARRIER postCopyBarriers[2];
-	postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(destination.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(source.textureResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
@@ -1444,7 +1442,7 @@ void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
-	CreatePhotonCountBuffer();
+	CreatePhotonCountBuffer(m_photonCountBuffer);
     CreateGBuffers(); // TODO is this right?
     UpdateCameraMatrices();
 }
@@ -1489,6 +1487,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 	}
 
 	m_photonCountBuffer.uavDescriptorHeapIndex = UINT_MAX;
+	m_photonScanBuffer.uavDescriptorHeapIndex = UINT_MAX;
+	m_photonTempIndexBuffer.uavDescriptorHeapIndex = UINT_MAX;
 
     m_indexBuffer.resource.Reset();
     m_vertexBuffer.resource.Reset();
@@ -1549,33 +1549,47 @@ void PhotonMapperRenderer::OnRender()
 		// 2 - normal
 		// This functions essentially prepares the G-Buffer for the second pass
 		// CopyGBUfferToBackBuffer(0U);
-
+		/*
 		m_calculatePhotonMap = false;
 
 		int numItems = MAX_SCENE_SIZE3;
 		int totalLevels = ilog2ceil(numItems);
 
+		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
+
 		// Up-sweep
-		for (int level = 0; level <= totalLevels; level++) {
-			int levelPowerOne = 1 << (level + 1); // pow(2, level + 1);
-			int levelPower = 1 << level; // pow(2, level);
-			// TODO pass these in buffer
-			m_computeConstantBuffer.param1 = levelPowerOne;
-			m_computeConstantBuffer.param2 = levelPower;
+		int power_2 = 1;
+		for (int level = 0; level <= totalLevels; level++) 
+		{
+			power_2 = (1 << level);
+
+			m_computeConstantBuffer.param1 = power_2;
+			m_computeConstantBuffer.param2 = numItems;
 
 			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
 		}
 
-		for (int level = totalLevels - 1; level >= 0; level--) {
-			int levelPowerPlusOne = 1 << (level + 1);
-			int levelPower = 1 << level;
+
+		for (int level = totalLevels - 1; level >= 0; level--) 
+		{
+			power_2 = (1 << level);
 
 			// Pass variables in bufer
-			m_computeConstantBuffer.param1 = levelPowerPlusOne;
-			m_computeConstantBuffer.param2 = levelPower;
+			m_computeConstantBuffer.param1 = power_2;
+			m_computeConstantBuffer.param2 = numItems;
 
-			DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
+			//DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
 		}
+
+		// Copy the count data to a dynamic index 
+		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
+
+		// Sort the photons
+		m_computeConstantBuffer.param1 = m_gBufferWidth;
+		m_computeConstantBuffer.param2 = m_gBufferDepth;
+		DoComputePass(m_computeThirdPassPSO, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth); //TODO change width
+		
+		*/
 	}
 
 	//DoSecondPassPhotonMapping();
