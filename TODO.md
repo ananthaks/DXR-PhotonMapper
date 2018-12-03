@@ -2,7 +2,7 @@
 
 * Core Photon Mapper
   * [ ] Spatial Data structure for Pixel Major
-  * [ ] Pixel Synchornization for Photon Major
+  * [ ] Pixel Synchronization for Photon Major
   * [ ] Denoising for Photon Major
 
 * Scene Loading

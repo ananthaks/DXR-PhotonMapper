@@ -80,11 +80,10 @@ private:
     bool m_isDxrSupported;
 
 	// Compute Stage attributes
+	ComPtr<ID3D12PipelineState> m_computeInitializePSO;
 	ComPtr<ID3D12PipelineState> m_computeFirstPassPSO;
 	ComPtr<ID3D12PipelineState> m_computeSecondPassPSO;
 	ComPtr<ID3D12PipelineState> m_computeThirdPassPSO;
-
-
 
     // Root signatures for the first pass
     ComPtr<ID3D12RootSignature> m_firstPassGlobalRootSignature;
@@ -97,7 +96,6 @@ private:
 	// Root signature for the compute pass
     ComPtr<ID3D12RootSignature> m_computeRootSignature;
 
-
     // Descriptors
     ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
     UINT m_descriptorsAllocated;
@@ -109,7 +107,6 @@ private:
 
 	// Compute Constant Buffer
 	PixelMajorComputeConstantBuffer m_computeConstantBuffer;
-
 
     // Geometry
     struct D3DBuffer
@@ -157,6 +154,7 @@ private:
     static const wchar_t* c_closestHitShaderName;
     static const wchar_t* c_missShaderName;
 
+    static const LPCWSTR c_computeShaderPass0;
     static const LPCWSTR c_computeShaderPass1;
     static const LPCWSTR c_computeShaderPass2;
 	static const LPCWSTR c_computeShaderPass3;

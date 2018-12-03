@@ -23,6 +23,7 @@ const wchar_t* PhotonMapperRenderer::c_raygenShaderName = L"MyRaygenShader";
 const wchar_t* PhotonMapperRenderer::c_closestHitShaderName = L"MyClosestHitShader";
 const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 
+const LPCWSTR PhotonMapperRenderer::c_computeShaderPass0 = L"PixelMajorComputePass0.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
@@ -225,18 +226,20 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     CreateRaytracingInterfaces();
 
     // Create root signatures for the shaders.
+
     CreateFirstPassRootSignatures();
     //CreateSecondPassRootSignatures();
 
-	//CreateComputeFirstPassRootSignature();
+	CreateComputeFirstPassRootSignature();
 
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
 	CreateFirstPassPhotonPipelineStateObject();
 	//CreateSecondPassPhotonPipelineStateObject();
 
+	CreateComputePipelineStateObject(c_computeShaderPass0, m_computeInitializePSO);
 	/*CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
-	CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
+    CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
 	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);*/
 
     // Create a heap for descriptors.
@@ -1538,6 +1541,8 @@ void PhotonMapperRenderer::OnRender()
 
 	if (m_calculatePhotonMap)
 	{
+        DoComputePass(m_computeInitializePSO, MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE); // TODO change width
+
 		DoFirstPassPhotonMapping();
 
 		// This is turned off for now, in order to test whether G Buffer was actually getting filled.

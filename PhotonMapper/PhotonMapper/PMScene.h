@@ -86,9 +86,14 @@ namespace DXRPhotonMapper
         ~PMScene();
 
         //------------------------------------------------------
-        // LoadScene
+        // LoadGLTFScene
         //------------------------------------------------------
 	    bool LoadGLTFScene(const std::string& fileName);
+
+        //------------------------------------------------------
+        // LoadJSONScene
+        //------------------------------------------------------
+	    bool LoadJSONScene(const std::string& fileName);
 
     };
 
