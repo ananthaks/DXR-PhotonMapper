@@ -228,19 +228,19 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     // Create root signatures for the shaders.
 
     CreateFirstPassRootSignatures();
-    //CreateSecondPassRootSignatures();
+    CreateSecondPassRootSignatures();
 
 	CreateComputeFirstPassRootSignature();
 
     // Create a raytracing pipeline state object which defines the binding of shaders, state and resources to be used during raytracing.
     // Temporary Testing: Should be put back later on.
 	CreateFirstPassPhotonPipelineStateObject();
-	//CreateSecondPassPhotonPipelineStateObject();
+	CreateSecondPassPhotonPipelineStateObject();
 
 	CreateComputePipelineStateObject(c_computeShaderPass0, m_computeInitializePSO);
-	/*CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
+	CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
     CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
-	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);*/
+	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);
 
     // Create a heap for descriptors.
     CreateDescriptorHeap();
@@ -259,7 +259,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
     // Build shader tables, which define shaders and their local root arguments.
     BuildFirstPassShaderTables();
-    //BuildSecondPassShaderTables();
+    BuildSecondPassShaderTables();
 
     // Create an output 2D texture to store the raytracing result to.
 
@@ -1446,6 +1446,8 @@ void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource(); 
 	CreatePhotonCountBuffer(m_photonCountBuffer);
+	CreatePhotonCountBuffer(m_photonScanBuffer);
+	CreatePhotonCountBuffer(m_photonTempIndexBuffer);
     CreateGBuffers(); // TODO is this right?
     UpdateCameraMatrices();
 }
@@ -1545,16 +1547,6 @@ void PhotonMapperRenderer::OnRender()
 
 		DoFirstPassPhotonMapping();
 
-		// This is turned off for now, in order to test whether G Buffer was actually getting filled.
-		//CopyRaytracingOutputToBackbuffer();
-
-		// The index Passed is the G buffer index in the collection - 
-		// 0 - pos
-		// 1 - color
-		// 2 - normal
-		// This functions essentially prepares the G-Buffer for the second pass
-		// CopyGBUfferToBackBuffer(0U);
-		/*
 		m_calculatePhotonMap = false;
 
 		int numItems = MAX_SCENE_SIZE3;
@@ -1574,7 +1566,6 @@ void PhotonMapperRenderer::OnRender()
 			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
 		}
 
-
 		for (int level = totalLevels - 1; level >= 0; level--) 
 		{
 			power_2 = (1 << level);
@@ -1583,7 +1574,7 @@ void PhotonMapperRenderer::OnRender()
 			m_computeConstantBuffer.param1 = power_2;
 			m_computeConstantBuffer.param2 = numItems;
 
-			//DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
+			DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
 		}
 
 		// Copy the count data to a dynamic index 
@@ -1594,10 +1585,9 @@ void PhotonMapperRenderer::OnRender()
 		m_computeConstantBuffer.param2 = m_gBufferDepth;
 		DoComputePass(m_computeThirdPassPSO, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth); //TODO change width
 		
-		*/
 	}
 
-	//DoSecondPassPhotonMapping();
+	DoSecondPassPhotonMapping();
 	CopyRaytracingOutputToBackbuffer();
 	//CopyGBUfferToBackBuffer(0U);
 

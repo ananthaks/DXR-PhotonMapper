@@ -22,7 +22,6 @@ RWTexture2DArray<float4> GPhotonColor : register(u5);
 RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
 RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
-
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
 uint3 PosToCellId(float3 worldPosition)

@@ -6,7 +6,6 @@
 #include "Common.h"
 #include "DirectXRaytracingHelper.h"
 
-
 // The sample supports both Raytracing Fallback Layer and DirectX Raytracing APIs. 
 // This is purely for demonstration purposes to show where the API differences are. 
 // Real-world applications will implement only one or the other. 
@@ -40,8 +39,8 @@ private:
     static const UINT FrameCount = 3;
     static const UINT NumGBuffers = 4;
     static const UINT NumPhotonCountBuffer = 1;
-    static const UINT NumPhotonScanBuffer = 0;
-    static const UINT NumPhotonTempIndexBuffer = 0;
+    static const UINT NumPhotonScanBuffer = 1;
+    static const UINT NumPhotonTempIndexBuffer = 1;
     static const UINT NumPhotons = 1000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
