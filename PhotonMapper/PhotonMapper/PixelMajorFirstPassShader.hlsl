@@ -20,14 +20,13 @@ RWTexture2D<float4> RenderTarget : register(u0);
 
 // G-Buffers
 RWTexture2DArray<uint> GPhotonCount : register(u1);
-//RWTexture2DArray<uint> GPhotonScan : register(u2);
-//RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
+RWTexture2DArray<uint> GPhotonScan : register(u2);
+RWTexture2DArray<uint> GPhotonTempIndex : register(u3);
 
-RWTexture2DArray<float4> GPhotonPos : register(u2);
-RWTexture2DArray<float4> GPhotonColor : register(u3);
-RWTexture2DArray<float4> GPhotonSortedPos : register(u4);
-RWTexture2DArray<float4> GPhotonSortedCol : register(u5);
-
+RWTexture2DArray<float4> GPhotonPos : register(u4);
+RWTexture2DArray<float4> GPhotonColor : register(u5);
+RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
+RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
@@ -413,6 +412,11 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
     return INV_PI * albedo;
 }
 
+inline float3 WorldToColor(float3 worldPosition)
+{
+	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
+}
+
 uint3 PosToCellId(float3 worldPosition)
 {
 	uint3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
@@ -533,20 +537,21 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.throughput = n_throughput; // Throughput
     payload.direction = wiW; // Direction
 
-    // Store photon
+    // Store photon into the photon uav buffer
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
     GPhotonPos[g_index] = float4(hitPosition, 1);
 	GPhotonColor[g_index] = payload.color;
 
-	uint3 cellId = PosToCellId(hitPosition);
-	uint increment = 1;
-	uint outVal;
+    // Calculate the cell in which the hit belongs to 
+    uint cellIdX = floor(POS_TO_CELL_X(hitPosition.x));
+    uint cellIdY = floor(POS_TO_CELL_Y(hitPosition.y));
+    uint cellIdZ = floor(POS_TO_CELL_Z(hitPosition.z));
 
-	//GPhotonCount[cellId] = 1;
-	//GPhotonCount[cellId] = GPhotonCount[cellId] + 1;
+    // Increment (with synchronization) the photon counter for that particular cell
+    uint3 cellId = uint3(cellIdX, cellIdY, cellIdZ);
+    uint increment = 1;
+    uint outVal;
 	InterlockedAdd(GPhotonCount[cellId], increment, outVal);
-
-	GPhotonPos[uint3(0, 0, 0)] = float4(GPhotonCount[cellId], GPhotonCount[cellId], GPhotonCount[cellId], GPhotonCount[cellId]);
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);

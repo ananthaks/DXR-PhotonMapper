@@ -1,13 +1,10 @@
-#ifndef COMPUTE_PASS_1
-#define COMPUTE_PASS_1
+#ifndef COMPUTE_PASS_0
+#define COMPUTE_PASS_0
 
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
 #define blocksize 128
-
-#define HLSL
-#include "RaytracingHlslCompat.h"
 
 // Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
@@ -24,31 +21,13 @@ RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
-uint3 PosToCellId(float3 worldPosition)
-{
-	float3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
-	return uint3(floor(correctWorldPos / CELL_SIZE));
-}
-
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
-
-// Exclusive Scan, Up-sweep
+// Zero out the initial buffer
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
+    GPhotonCount[DTid] = 0;
     GPhotonScan[DTid] = 0;
+    GPhotonTempIndex[DTid] = 0;
 }
 
-#endif // COMPUTE_PASS_1
+#endif // COMPUTE_PASS_0

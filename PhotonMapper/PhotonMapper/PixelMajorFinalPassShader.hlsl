@@ -28,7 +28,6 @@ RWTexture2DArray<float4> GPhotonColor : register(u5);
 RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
 RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
-
 RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices : register(t1, space0);
 StructuredBuffer<Vertex> Vertices : register(t2, space0);
@@ -395,7 +394,7 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 	return INV_PI * albedo;
 }
 
-#define PHOTON_CLOSENESS 10.f
+#define PHOTON_CLOSENESS 0.5f
 
 inline float3 ColorToWorld(float3 color)
 {
@@ -438,7 +437,7 @@ inline float4 PerformNaiveSearch(float3 intersectionPoint)
 			for (int k = 0; k < depth; ++k)
 			{
 				uint3 index = uint3(i, j, k);
-				float dist = distance(intersectionPoint, ColorToWorld(GPhotonPos[index].xyz));
+				float dist = distance(intersectionPoint, GPhotonPos[index].xyz);
 
 				if (dist < PHOTON_CLOSENESS)
 				{
@@ -510,7 +509,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 				for (int photon = photonStart; photon < photonCount; ++photon)
 				{
 					uint3 index = Cell1DToPhotonID(photon);
-					float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
+					float dist = distance(intersectionPoint, ColorToWorld(GPhotonSortedPos[index].xyz));
 
 					if (dist < PHOTON_CLOSENESS)
 					{
@@ -533,7 +532,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     float3 hitPosition = HitWorldPosition();
-    payload.color = PerformSorted(hitPosition);
+    payload.color = PerformNaiveSearch(hitPosition);
 
 }
 

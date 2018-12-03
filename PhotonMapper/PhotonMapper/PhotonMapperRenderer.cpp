@@ -28,7 +28,6 @@ const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePa
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
 
-
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
 	DXSample(width, height, name),
 	m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
@@ -619,8 +618,6 @@ void PhotonMapperRenderer::CreateGBuffers()
 	*/
     m_gBufferWidth = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, width);
     m_gBufferHeight = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, height);
-    //m_gBufferWidth = min(16384, NumPhotons); // m_width * m_height;
-    //m_gBufferHeight = (NumPhotons / 16384) + 1; //m_height;
     m_gBufferDepth = MAX_RAY_RECURSION_DEPTH;
 
     auto device = m_deviceResources->GetD3DDevice();
@@ -631,7 +628,6 @@ void PhotonMapperRenderer::CreateGBuffers()
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
     m_gBuffers.clear();
-
 
     for (int i = 0; i < NumGBuffers; ++i)
     {
@@ -660,13 +656,11 @@ void PhotonMapperRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
 	// Create a buffer for hash grid construction
 	// A texture that stores the number of photons in each cell
 	// Divide the entire scene space into cells
-	// For now, a cell is 1x1x1 // TODO do we want to change this?
-	// Max number of cells is defined by MAX_SCENE_SIZE (MAX x MAX x MAX)
 
 	auto device = m_deviceResources->GetD3DDevice();
 
 	// Create the output resource. The dimensions and format should match the swap-chain.
-	auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_UINT, MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_UINT, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
 	gBuffer = {};
@@ -680,7 +674,7 @@ void PhotonMapperRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
 	gBuffer.uavDescriptorHeapIndex = AllocateDescriptor(&uavDescriptorHandle, gBuffer.uavDescriptorHeapIndex);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
 	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-	UAVDesc.Texture2DArray.ArraySize = MAX_SCENE_SIZE;
+	UAVDesc.Texture2DArray.ArraySize = NUM_CELLS_IN_Z;
 	device->CreateUnorderedAccessView(gBuffer.textureResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
 	gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
 }
@@ -1543,39 +1537,44 @@ void PhotonMapperRenderer::OnRender()
 
 	if (m_calculatePhotonMap)
 	{
-        DoComputePass(m_computeInitializePSO, MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE); // TODO change width
+        // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
+        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
 
+        // Performs:
+        // 1. Photon Generation
+        // 2. Photon Traversal
+        // 3. Calculates the number of photons in each cell.
 		DoFirstPassPhotonMapping();
 
-		m_calculatePhotonMap = false;
+        m_calculatePhotonMap = false;
 
-		int numItems = MAX_SCENE_SIZE3;
-		int totalLevels = ilog2ceil(numItems);
+        // Try to keep this number to be a power of 2.
+		const int numItems = NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z;
+		const int log_n = ilog2ceil(numItems);
 
+        // Make a copy of the count data into the scan buffer
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
 
-		// Up-sweep
-		int power_2 = 1;
-		for (int level = 0; level <= totalLevels; level++) 
-		{
-			power_2 = (1 << level);
+		// Exclusive scan up-sweep
+        int power_2 = 1;
+        for(int d = 0; d < log_n; ++d)
+        {
+            power_2 = (1 << d);
+            m_computeConstantBuffer.param1 = power_2;
+            m_computeConstantBuffer.param2 = numItems;
 
-			m_computeConstantBuffer.param1 = power_2;
-			m_computeConstantBuffer.param2 = numItems;
+            DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
+        }
 
-			DoComputePass(m_computeFirstPassPSO, numItems, 1, 1); // TODO change width
-		}
+        // 3b. DownSweep
+        for (int d = log_n - 1; d >= 0; --d)
+        {
+            power_2 = (1 << d);
+            m_computeConstantBuffer.param1 = power_2;
+            m_computeConstantBuffer.param2 = numItems;
 
-		for (int level = totalLevels - 1; level >= 0; level--) 
-		{
-			power_2 = (1 << level);
-
-			// Pass variables in bufer
-			m_computeConstantBuffer.param1 = power_2;
-			m_computeConstantBuffer.param2 = numItems;
-
-			DoComputePass(m_computeSecondPassPSO, numItems, 1, 1); //TODO change width
-		}
+            DoComputePass(m_computeSecondPassPSO, numItems, 1, 1);
+        }
 
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
@@ -1583,8 +1582,8 @@ void PhotonMapperRenderer::OnRender()
 		// Sort the photons
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
 		m_computeConstantBuffer.param2 = m_gBufferDepth;
-		DoComputePass(m_computeThirdPassPSO, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth); //TODO change width
-		
+		DoComputePass(m_computeThirdPassPSO, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth); //TODO change width..
+        
 	}
 
 	DoSecondPassPhotonMapping();

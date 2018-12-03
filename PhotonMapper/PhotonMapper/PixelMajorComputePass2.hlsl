@@ -21,20 +21,6 @@ RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
-
 // Downsweep
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
@@ -52,12 +38,23 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	const int oldIndex = index + two_d - 1;
 	const int newIndex = index + two_d_1 - 1;
 
-	const int dataAtNewIndex = GPhotonScan[Cell1DTo3D(newIndex)];
+    // TODO: Optimize this. I have written this out like this to debug and verify that everythign works first.
+    const uint oldcellX = CELL_1D_TO_3D_X(oldIndex);
+    const uint oldcellY = CELL_1D_TO_3D_Y(oldIndex);
+    const uint oldcellZ = CELL_1D_TO_3D_Z(oldIndex);
 
-	const int t = GPhotonScan[Cell1DTo3D(oldIndex)];
+    const uint cellX = CELL_1D_TO_3D_X(newIndex);
+    const uint cellY = CELL_1D_TO_3D_Y(newIndex);
+    const uint cellZ = CELL_1D_TO_3D_Z(newIndex);
 
-	GPhotonScan[Cell1DTo3D(oldIndex)] = dataAtNewIndex;
-	GPhotonScan[Cell1DTo3D(newIndex)] = t + GPhotonScan[Cell1DTo3D(newIndex)];
+    const uint3 oldCell = uint3(oldcellX, oldcellY, oldcellZ);
+    const uint3 newCell = uint3(cellX, cellY, cellZ);
+
+	const int dataAtNewIndex = GPhotonScan[newCell];
+
+	const int t = GPhotonScan[oldCell];
+	GPhotonScan[oldCell] = dataAtNewIndex;
+	GPhotonScan[newCell] = t + GPhotonScan[newCell];
 }
 
 #endif // COMPUTE_PASS_2

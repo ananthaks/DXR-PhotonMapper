@@ -22,7 +22,6 @@ RWTexture2DArray<float4> GPhotonColor : register(u5);
 RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
 RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
-
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
 uint3 PosToCellId(float3 worldPosition)
@@ -62,8 +61,21 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	const int oldIndex = index + two_d - 1;
 	const int newIndex = index + two_d_1 - 1;
 
-	const int currData = GPhotonScan[Cell1DTo3D(newIndex)];
-	GPhotonScan[Cell1DTo3D(newIndex)] = newIndex != (MAX_SCENE_SIZE3 - 1) ? currData + GPhotonScan[Cell1DTo3D(newIndex)] : 0;
+    // TODO: Optimize this. I have written this out like this to debug and verify that everythign works first.
+
+    const uint oldcellX = CELL_1D_TO_3D_X(oldIndex);
+    const uint oldcellY = CELL_1D_TO_3D_Y(oldIndex);
+    const uint oldcellZ = CELL_1D_TO_3D_Z(oldIndex);
+
+    const uint cellX = CELL_1D_TO_3D_X(newIndex);
+    const uint cellY = CELL_1D_TO_3D_Y(newIndex);
+    const uint cellZ = CELL_1D_TO_3D_Z(newIndex);
+
+    const uint3 oldCell = uint3(oldcellX, oldcellY, oldcellZ);
+    const uint3 newCell = uint3(cellX, cellY, cellZ);
+
+	const int currData = GPhotonScan[newCell];
+	GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + GPhotonScan[oldCell]) : 0;
 }
 
 #endif // COMPUTE_PASS_1

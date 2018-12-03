@@ -22,10 +22,28 @@ typedef UINT16 Index;
 #endif
 
 #define MAX_RAY_RECURSION_DEPTH 5
-#define MAX_SCENE_SIZE 20
+
+#define MAX_SCENE_SIZE 16
 #define MAX_SCENE_SIZE3 MAX_SCENE_SIZE * MAX_SCENE_SIZE * MAX_SCENE_SIZE
 
-#define CELL_SIZE 1
+#define CELL_SIZE 0.25
+
+#define NUM_CELLS_IN_X MAX_SCENE_SIZE / CELL_SIZE
+#define NUM_CELLS_IN_Y MAX_SCENE_SIZE / CELL_SIZE
+#define NUM_CELLS_IN_Z MAX_SCENE_SIZE / CELL_SIZE
+
+#define POS_TO_CELL_X(pos_x) (pos_x + MAX_SCENE_SIZE) / 2
+#define POS_TO_CELL_Y(pos_y) (pos_y + MAX_SCENE_SIZE) / 2
+#define POS_TO_CELL_Z(pos_z) (pos_z + MAX_SCENE_SIZE) / 2
+
+// This Assumes the implementation is in row-major
+// i.e. the cells are placed row-wise first, the column and then depth
+#define CELL_3D_TO_1D(cellx, celly, cellz) (cellx + celly * NUM_CELLS_IN_X + cellz * NUM_CELLS_IN_X * NUM_CELLS_IN_Y)
+
+#define CELL_1D_TO_3D_X(cellId) (cellId % NUM_CELLS_IN_X)
+#define CELL_1D_TO_3D_Y(cellId) ((cellId / NUM_CELLS_IN_X) % NUM_CELLS_IN_Y)
+#define CELL_1D_TO_3D_Z(cellId) (cellId / (NUM_CELLS_IN_X * NUM_CELLS_IN_Y))
+
 
 struct SceneConstantBuffer
 {
