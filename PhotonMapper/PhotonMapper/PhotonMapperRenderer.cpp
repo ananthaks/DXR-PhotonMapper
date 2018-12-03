@@ -1535,10 +1535,17 @@ void PhotonMapperRenderer::OnRender()
 
     m_deviceResources->Prepare();
 
+    auto commandList = m_deviceResources->GetCommandList();
+    auto commandAllocator = m_deviceResources->GetCommandAllocator();
+
 	if (m_calculatePhotonMap)
 	{
         // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
         DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
+
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
+        commandList->Reset(commandAllocator, nullptr);
 
         // Performs:
         // 1. Photon Generation
@@ -1566,6 +1573,11 @@ void PhotonMapperRenderer::OnRender()
             DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
         }
 
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
+        commandList->Reset(commandAllocator, nullptr);
+
+
         // 3b. DownSweep
         for (int d = log_n - 1; d >= 0; --d)
         {
@@ -1576,6 +1588,10 @@ void PhotonMapperRenderer::OnRender()
             DoComputePass(m_computeSecondPassPSO, numItems, 1, 1);
         }
 
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
+        commandList->Reset(commandAllocator, nullptr);
+
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
 
@@ -1583,6 +1599,10 @@ void PhotonMapperRenderer::OnRender()
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
 		m_computeConstantBuffer.param2 = m_gBufferDepth;
 		DoComputePass(m_computeThirdPassPSO, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth); //TODO change width..
+
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
+        commandList->Reset(commandAllocator, nullptr);
         
 	}
 

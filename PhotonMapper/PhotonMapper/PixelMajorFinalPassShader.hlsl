@@ -532,7 +532,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     float3 hitPosition = HitWorldPosition();
-    payload.color = PerformNaiveSearch(hitPosition);
+    payload.color = PerformSorted(hitPosition);
 
 }
 
