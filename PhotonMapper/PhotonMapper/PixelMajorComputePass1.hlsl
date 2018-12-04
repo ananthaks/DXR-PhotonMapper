@@ -44,10 +44,95 @@ uint3 Cell1DTo3D(uint id)
 	return temp;
 }
 
+// From Stream Compaction hw
+int ilog2(int x) {
+    int lg = 0;
+    while (x >>= 1) {
+        ++lg;
+    }
+    return lg;
+}
+
+int ilog2ceil(int x) {
+    return x == 1 ? 0 : ilog2(x - 1) + 1;
+}
+
+void CSScan(uint3 DTid) {
+    int index = DTid.x;
+
+    //const int two_d = CKernelParams.param1;
+    //const int two_d_1 = two_d * 2;
+
+    //// Calculating ilog2ceil in functions gives hanging error
+    //int ilog2(int x) {
+    //    int lg = 0;
+    //    while (x >>= 1) {
+    //        ++lg;
+    //    }
+    //    return lg;
+    //}
+
+    //int ilog2ceil(int x) {
+    //    return x == 1 ? 0 : ilog2(x - 1) + 1;
+    //}
+
+    //int log_n;
+    //if (CKernelParams)
+
+    const int log_n = ilog2ceil(CKernelParams.param2);
+
+    // Up sweep
+    int power_2 = 1;
+
+    int d = 0;
+
+    [unroll]
+    for (int d = 0; d < log_n; ++d) {
+        GroupMemoryBarrierWithGroupSync();
+
+        power_2 = (1 << d);
+
+        int two_d = power_2;
+        int two_d_1 = two_d * 2;
+
+        
+        if (index % two_d_1 != 0)
+        {
+            return;
+        }
+        
+
+        int oldIndex = index + two_d - 1;
+        int newIndex = index + two_d_1 - 1;
+
+        uint oldcellX = CELL_1D_TO_3D_X(oldIndex);
+        uint oldcellY = CELL_1D_TO_3D_Y(oldIndex);
+        uint oldcellZ = CELL_1D_TO_3D_Z(oldIndex);
+
+        uint cellX = CELL_1D_TO_3D_X(newIndex);
+        uint cellY = CELL_1D_TO_3D_Y(newIndex);
+        uint cellZ = CELL_1D_TO_3D_Z(newIndex);
+
+        uint3 oldCell = uint3(oldcellX, oldcellY, oldcellZ);
+        uint3 newCell = uint3(cellX, cellY, cellZ);
+
+        int currData = GPhotonScan[newCell];
+        int oldData = GPhotonScan[oldCell];
+        //GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + oldData) : 0;
+        GPhotonScan[newCell] = oldData + currData;
+    }
+
+}
+
+
+
 // Exclusive Scan, Up-sweep
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
+    CSScan(DTid);
+
+    /*
 	int index = DTid.x;
 
 	const int two_d = CKernelParams.param1;
@@ -80,7 +165,9 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     GPhotonScan[newCell] = oldData + currData;
     //GPhotonScan[newCell] = two_d;
 
-    AllMemoryBarrierWithGroupSync();
+    //AllMemoryBarrierWithGroupSync();
+    GroupMemoryBarrierWithGroupSync();
+    */
 }
 
 #endif // COMPUTE_PASS_1

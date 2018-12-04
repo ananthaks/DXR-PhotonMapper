@@ -607,15 +607,15 @@ void PhotonMapperRenderer::CreateGBuffers()
 
     // TODO Might change later.
     int width = sqrt(NumPhotons);
-	int log = ilog2ceil(width); // For exclusive scan, number of elements need to be power of 2
-	width = pow(2, log);
+	//int log = ilog2ceil(width); // For exclusive scan, number of elements need to be power of 2
+	//width = pow(2, log);
     int height = width;
-	/*
+	
     if (NumPhotons % width != 0)
     {
         height++;
     }
-	*/
+	
     m_gBufferWidth = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, width);
     m_gBufferHeight = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, height);
     m_gBufferDepth = MAX_RAY_RECURSION_DEPTH;
@@ -1557,12 +1557,13 @@ void PhotonMapperRenderer::OnRender()
 
         // Try to keep this number to be a power of 2.
 		const int numItems = NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z;
-		const int log_n = ilog2ceil(numItems);
+		//const int log_n = ilog2ceil(numItems);
 
         // Make a copy of the count data into the scan buffer
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
         
 		// Exclusive scan up-sweep
+        /*
         int power_2 = 1;
         for(int d = 0; d < 2; ++d)
         {
@@ -1572,6 +1573,10 @@ void PhotonMapperRenderer::OnRender()
 
             DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
         }
+        */
+        //m_computeConstantBuffer.param1 = power_2;
+        m_computeConstantBuffer.param2 = numItems;
+        DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
 
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
