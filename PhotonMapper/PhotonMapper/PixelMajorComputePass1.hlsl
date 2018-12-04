@@ -75,7 +75,12 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     const uint3 newCell = uint3(cellX, cellY, cellZ);
 
 	const int currData = GPhotonScan[newCell];
-	GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + GPhotonScan[oldCell]) : 0;
+    const int oldData = GPhotonScan[oldCell];
+	//GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + oldData) : 0;
+    GPhotonScan[newCell] = oldData + currData;
+    //GPhotonScan[newCell] = two_d;
+
+    AllMemoryBarrierWithGroupSync();
 }
 
 #endif // COMPUTE_PASS_1

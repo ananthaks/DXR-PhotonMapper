@@ -1541,8 +1541,8 @@ void PhotonMapperRenderer::OnRender()
 	if (m_calculatePhotonMap)
 	{
         // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
-        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
-
+        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z, 1, 1); //TODO connie change after done debugging
+        
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
@@ -1551,9 +1551,9 @@ void PhotonMapperRenderer::OnRender()
         // 1. Photon Generation
         // 2. Photon Traversal
         // 3. Calculates the number of photons in each cell.
-		DoFirstPassPhotonMapping();
+		//DoFirstPassPhotonMapping();
 
-        m_calculatePhotonMap = false;
+        //m_calculatePhotonMap = false;
 
         // Try to keep this number to be a power of 2.
 		const int numItems = NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z;
@@ -1561,10 +1561,10 @@ void PhotonMapperRenderer::OnRender()
 
         // Make a copy of the count data into the scan buffer
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
-
+        
 		// Exclusive scan up-sweep
         int power_2 = 1;
-        for(int d = 0; d < log_n; ++d)
+        for(int d = 0; d < 2; ++d)
         {
             power_2 = (1 << d);
             m_computeConstantBuffer.param1 = power_2;
@@ -1577,7 +1577,7 @@ void PhotonMapperRenderer::OnRender()
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
 
-
+        /*
         // 3b. DownSweep
         for (int d = log_n - 1; d >= 0; --d)
         {
@@ -1591,7 +1591,7 @@ void PhotonMapperRenderer::OnRender()
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
-
+        
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
 
@@ -1603,10 +1603,11 @@ void PhotonMapperRenderer::OnRender()
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
+        */
         
 	}
 
-	DoSecondPassPhotonMapping();
+	//DoSecondPassPhotonMapping();
 	CopyRaytracingOutputToBackbuffer();
 	//CopyGBUfferToBackBuffer(0U);
 

@@ -13,8 +13,8 @@
 #include "PhotonMapperRenderer.h"
 #include "PhotonMajorRenderer.h"
 
-#define USE_PHOTON_MAJOR_RENDERER
-//#define USE_PIXEL_MAJOR_RENDERER
+//#define USE_PHOTON_MAJOR_RENDERER
+#define USE_PIXEL_MAJOR_RENDERER
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
