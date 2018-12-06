@@ -76,6 +76,17 @@ struct Vertex
     XMFLOAT3 normal;
 };
 
+// From Stream Compaction hw
+inline int ilog2(int x) {
+	int lg = 0;
+	while (x >>= 1) {
+		++lg;
+	}
+	return lg;
+}
 
+inline int ilog2ceil(int x) {
+	return x == 1 ? 0 : ilog2(x - 1) + 1;
+}
 
 #endif // RAYTRACINGHLSLCOMPAT_H

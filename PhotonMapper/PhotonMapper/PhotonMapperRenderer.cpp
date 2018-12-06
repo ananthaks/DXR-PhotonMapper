@@ -1584,7 +1584,7 @@ void PhotonMapperRenderer::OnRender()
 
         // Try to keep this number to be a power of 2.
 		const int numItems = NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z;
-		//const int log_n = ilog2ceil(numItems);
+		const int log_n = ilog2ceil(numItems);
 
         // Make a copy of the count data into the scan buffer
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
@@ -1593,7 +1593,7 @@ void PhotonMapperRenderer::OnRender()
 
         
         int power_2 = 1;
-        for(int d = 0; d < 256; ++d)
+        for(int d = 0; d < log_n; ++d)
         {
             power_2 = (1 << d);
             m_computeConstantBuffer.param1 = power_2;
@@ -1601,9 +1601,9 @@ void PhotonMapperRenderer::OnRender()
 
             DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
 
-            //ScanWaitForGPU(commandQueue);
 			m_deviceResources->ExecuteCommandList();
-			m_deviceResources->WaitForGpu();
+			ScanWaitForGPU(commandQueue);
+			//m_deviceResources->WaitForGpu();
 			commandList->Reset(commandAllocator, nullptr);
 
         }
@@ -1614,11 +1614,13 @@ void PhotonMapperRenderer::OnRender()
         //m_computeConstantBuffer.param2 = numItems;
         //DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
 
+		/*
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
+		*/
 
-        /*
+        
         // 3b. DownSweep
         for (int d = log_n - 1; d >= 0; --d)
         {
@@ -1627,6 +1629,10 @@ void PhotonMapperRenderer::OnRender()
             m_computeConstantBuffer.param2 = numItems;
 
             DoComputePass(m_computeSecondPassPSO, numItems, 1, 1);
+
+			m_deviceResources->ExecuteCommandList();
+			ScanWaitForGPU(commandQueue);
+			commandList->Reset(commandAllocator, nullptr);
         }
 
         m_deviceResources->ExecuteCommandList();
@@ -1636,6 +1642,8 @@ void PhotonMapperRenderer::OnRender()
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
 
+		/*
+
 		// Sort the photons
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
 		m_computeConstantBuffer.param2 = m_gBufferDepth;
@@ -1644,7 +1652,8 @@ void PhotonMapperRenderer::OnRender()
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
-        */
+		*/
+        
         
 	}
 
