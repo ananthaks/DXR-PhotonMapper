@@ -225,4 +225,10 @@ private:
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
     WRAPPED_GPU_POINTER CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
+
+    // fence for exclusive scan
+    Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
+    UINT64 m_fenceValue;
+    Microsoft::WRL::Wrappers::Event m_fenceEvent;
+    void ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue);
 };

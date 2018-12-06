@@ -63,22 +63,6 @@ void CSScan(uint3 DTid) {
     //const int two_d = CKernelParams.param1;
     //const int two_d_1 = two_d * 2;
 
-    //// Calculating ilog2ceil in functions gives hanging error
-    //int ilog2(int x) {
-    //    int lg = 0;
-    //    while (x >>= 1) {
-    //        ++lg;
-    //    }
-    //    return lg;
-    //}
-
-    //int ilog2ceil(int x) {
-    //    return x == 1 ? 0 : ilog2(x - 1) + 1;
-    //}
-
-    //int log_n;
-    //if (CKernelParams)
-
     const int log_n = ilog2ceil(CKernelParams.param2);
 
     // Up sweep
@@ -130,9 +114,9 @@ void CSScan(uint3 DTid) {
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
-    CSScan(DTid);
+    //CSScan(DTid);
 
-    /*
+    
 	int index = DTid.x;
 
 	const int two_d = CKernelParams.param1;
@@ -164,9 +148,18 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	//GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + oldData) : 0;
     GPhotonScan[newCell] = oldData + currData;
     //GPhotonScan[newCell] = two_d;
+    
 
-    //AllMemoryBarrierWithGroupSync();
-    GroupMemoryBarrierWithGroupSync();
+    /*
+    int index = DTid.x;
+    const uint cellX = CELL_1D_TO_3D_X(index);
+    const uint cellY = CELL_1D_TO_3D_Y(index);
+    const uint cellZ = CELL_1D_TO_3D_Z(index);
+    const uint3 newCell = uint3(cellX, cellY, cellZ);
+
+    const int oldData = GPhotonScan[newCell];
+
+    GPhotonScan[newCell] = oldData + 1;
     */
 }
 

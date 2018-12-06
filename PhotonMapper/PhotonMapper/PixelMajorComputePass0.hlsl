@@ -4,7 +4,7 @@
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
-#define blocksize 128
+#define blocksize 2
 
 // Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
@@ -25,9 +25,10 @@ ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
-    //GPhotonCount[DTid] = DTid.x;
+    GPhotonCount[DTid] = 0;
     GPhotonScan[DTid] = 0;
     GPhotonTempIndex[DTid] = 0;
+    
     // Debug
     uint3 index;
     index.x = CELL_1D_TO_3D_X(DTid.x);
@@ -36,6 +37,10 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     GPhotonCount[index] = DTid.x;
     //GPhotonScan[index] = index.y;
     //GPhotonTempIndex[index] = index.z;
+
+    //GPhotonCount[DTid] = GPhotonCount[DTid];
+    //GPhotonScan[DTid] = GPhotonScan[DTid];
+    //GPhotonTempIndex[DTid] = GPhotonTempIndex[DTid];
     
 }
 
