@@ -1593,7 +1593,7 @@ void PhotonMapperRenderer::OnRender()
 
         
         int power_2 = 1;
-        for(int d = 0; d < 3; ++d)
+        for(int d = 0; d < 256; ++d)
         {
             power_2 = (1 << d);
             m_computeConstantBuffer.param1 = power_2;
@@ -1601,7 +1601,10 @@ void PhotonMapperRenderer::OnRender()
 
             DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
 
-            ScanWaitForGPU(commandQueue);
+            //ScanWaitForGPU(commandQueue);
+			m_deviceResources->ExecuteCommandList();
+			m_deviceResources->WaitForGpu();
+			commandList->Reset(commandAllocator, nullptr);
 
         }
         
@@ -1794,8 +1797,10 @@ UINT PhotonMapperRenderer::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, 
     return descriptorIndex;
 }
 
-void PhotonMapperRenderer::ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue)
+void PhotonMapperRenderer::ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueueNo)
 {
+	auto commandQueue = m_deviceResources->GetCommandQueue();
+
     // Schedule a Signal command in the GPU queue.
     if (commandQueue && m_fence && m_fenceEvent.IsValid())
     {

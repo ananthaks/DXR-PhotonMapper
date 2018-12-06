@@ -116,7 +116,7 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 {
     //CSScan(DTid);
 
-    
+    /*
 	int index = DTid.x;
 
 	const int two_d = CKernelParams.param1;
@@ -148,9 +148,9 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	//GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + oldData) : 0;
     GPhotonScan[newCell] = oldData + currData;
     //GPhotonScan[newCell] = two_d;
-    
+    */
 
-    /*
+    
     int index = DTid.x;
     const uint cellX = CELL_1D_TO_3D_X(index);
     const uint cellY = CELL_1D_TO_3D_Y(index);
@@ -160,7 +160,7 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     const int oldData = GPhotonScan[newCell];
 
     GPhotonScan[newCell] = oldData + 1;
-    */
+    
 }
 
 #endif // COMPUTE_PASS_1
