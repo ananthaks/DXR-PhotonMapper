@@ -5,11 +5,6 @@
 
 #include "RaytracingHlslCompat.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#define TINYGLTF_LOADER_IMPLEMENTATION
-#include "tiny_gltf_loader.h"
-
-
 namespace DXRPhotonMapper
 {
     typedef unsigned char ByteBuffer; 
@@ -54,25 +49,10 @@ namespace DXRPhotonMapper
 	    std::vector<Geometry> m_sceneGeoms;
 	    std::vector<Material> m_sceneMaterials;
 
-        tinygltf::Scene m_gltfScene;
+        
         std::map<std::string, BufferHolder> m_gltfBufferHolders;
 
-    private:
-
-        //------------------------------------------------------
-        // PrintGLTFScene
-        //------------------------------------------------------
-        void PrintGLTFScene();
-
-        //------------------------------------------------------
-        // LoadGLTFBufferViews
-        //------------------------------------------------------
-	    void LoadGLTFBufferViews();
-
-        //------------------------------------------------------
-        // LoadGLTFMeshes
-        //------------------------------------------------------
-        void LoadGLTFMeshes();
+        
 
     public:
         //------------------------------------------------------
@@ -94,7 +74,6 @@ namespace DXRPhotonMapper
         // LoadJSONScene
         //------------------------------------------------------
 	    bool LoadJSONScene(const std::string& fileName);
-
     };
 
 }
