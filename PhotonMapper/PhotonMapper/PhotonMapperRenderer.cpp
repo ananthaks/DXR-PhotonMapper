@@ -29,11 +29,12 @@ const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePa
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
 
 PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
-	DXSample(width, height, name),
-	m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
-	m_curRotationAngleRad(0.0f),
-	m_isDxrSupported(false),
-	m_calculatePhotonMap(false)
+    DXSample(width, height, name),
+    m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
+    m_curRotationAngleRad(0.0f),
+    m_isDxrSupported(false),
+    m_calculatePhotonMap(false),
+    m_fenceValue(0)
 {
     m_forceComputeFallback = false;
     SelectRaytracingAPI(RaytracingAPI::FallbackLayer);
@@ -264,6 +265,28 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 
 	// Why is this being called twice??
     // CreateRaytracingOutputResource();
+
+    // Create a fence for tracking GPU execution progress.
+    auto device = m_deviceResources->GetD3DDevice();
+    /*
+    if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
+    {
+        ThrowIfFailed(m_fallbackDevice->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    }
+    else // DirectX Raytracing
+    {
+        ThrowIfFailed(m_dxrDevice->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    }
+    */
+
+    ThrowIfFailed(device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    m_fenceValue++;
+
+    m_fenceEvent.Attach(CreateEvent(nullptr, FALSE, FALSE, nullptr));
+    if (!m_fenceEvent.IsValid())
+    {
+        ThrowIfFailed(E_FAIL, L"CreateEvent failed.\n");
+    }
 }
 
 void PhotonMapperRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -607,15 +630,15 @@ void PhotonMapperRenderer::CreateGBuffers()
 
     // TODO Might change later.
     int width = sqrt(NumPhotons);
-	int log = ilog2ceil(width); // For exclusive scan, number of elements need to be power of 2
-	width = pow(2, log);
+	//int log = ilog2ceil(width); // For exclusive scan, number of elements need to be power of 2
+	//width = pow(2, log);
     int height = width;
-	/*
+	
     if (NumPhotons % width != 0)
     {
         height++;
     }
-	*/
+	
     m_gBufferWidth = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, width);
     m_gBufferHeight = min(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, height);
     m_gBufferDepth = MAX_RAY_RECURSION_DEPTH;
@@ -1509,6 +1532,8 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
     m_indexBufferFloor.resource.Reset();
     m_vertexBufferFloor.resource.Reset();
 
+    m_fence.Reset();
+
 }
 
 void PhotonMapperRenderer::RecreateD3D()
@@ -1537,12 +1562,14 @@ void PhotonMapperRenderer::OnRender()
 
     auto commandList = m_deviceResources->GetCommandList();
     auto commandAllocator = m_deviceResources->GetCommandAllocator();
+    auto commandQueue = m_deviceResources->GetCommandQueue();
+
 
 	if (m_calculatePhotonMap)
 	{
         // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
-        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
-
+        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z, 1, 1); //TODO connie change after done debugging
+        
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
@@ -1561,8 +1588,10 @@ void PhotonMapperRenderer::OnRender()
 
         // Make a copy of the count data into the scan buffer
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
-
+        
 		// Exclusive scan up-sweep
+
+        
         int power_2 = 1;
         for(int d = 0; d < log_n; ++d)
         {
@@ -1571,13 +1600,21 @@ void PhotonMapperRenderer::OnRender()
             m_computeConstantBuffer.param2 = numItems;
 
             DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
-        }
 
+			m_deviceResources->ExecuteCommandList();
+			ScanWaitForGPU(commandQueue);
+			//m_deviceResources->WaitForGpu();
+			commandList->Reset(commandAllocator, nullptr);
+
+        }
+       
+		/*
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
+		*/
 
-
+        
         // 3b. DownSweep
         for (int d = log_n - 1; d >= 0; --d)
         {
@@ -1586,12 +1623,18 @@ void PhotonMapperRenderer::OnRender()
             m_computeConstantBuffer.param2 = numItems;
 
             DoComputePass(m_computeSecondPassPSO, numItems, 1, 1);
+
+			m_deviceResources->ExecuteCommandList();
+			ScanWaitForGPU(commandQueue);
+			commandList->Reset(commandAllocator, nullptr);
         }
 
+		/*
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
-
+		*/
+        
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
 
@@ -1602,7 +1645,7 @@ void PhotonMapperRenderer::OnRender()
 
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
-        commandList->Reset(commandAllocator, nullptr);
+        commandList->Reset(commandAllocator, nullptr);        
         
 	}
 
@@ -1753,4 +1796,27 @@ UINT PhotonMapperRenderer::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, 
     device->CreateShaderResourceView(buffer->resource.Get(), &srvDesc, buffer->cpuDescriptorHandle);
     buffer->gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, m_descriptorSize);
     return descriptorIndex;
+}
+
+void PhotonMapperRenderer::ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueueNo)
+{
+	auto commandQueue = m_deviceResources->GetCommandQueue();
+
+    // Schedule a Signal command in the GPU queue.
+    if (commandQueue && m_fence && m_fenceEvent.IsValid())
+    {
+        UINT64 fenceValue = m_fenceValue;
+        m_fenceValue++;
+        if (SUCCEEDED(commandQueue->Signal(m_fence.Get(), fenceValue)))
+        {
+            // Wait until the Signal has been processed.
+            if (SUCCEEDED(m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get())))
+            {
+                WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+
+                // Increment the fence value for the current frame.
+            }
+            //m_fenceValue++;
+        }
+    }
 }

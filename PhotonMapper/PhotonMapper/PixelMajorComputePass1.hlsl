@@ -44,10 +44,12 @@ uint3 Cell1DTo3D(uint id)
 	return temp;
 }
 
+
 // Exclusive Scan, Up-sweep
 [numthreads(blocksize, 1, 1)]
 void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
+
 	int index = DTid.x;
 
 	const int two_d = CKernelParams.param1;
@@ -75,7 +77,15 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     const uint3 newCell = uint3(cellX, cellY, cellZ);
 
 	const int currData = GPhotonScan[newCell];
-	GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + GPhotonScan[oldCell]) : 0;
+    const int oldData = GPhotonScan[oldCell];
+	//GPhotonScan[newCell] = newIndex != (CKernelParams.param2 - 1) ? (currData + oldData) : 0;
+    GPhotonScan[newCell] = oldData + currData;
+
+	// If last pass and last element, set it to zero
+	if (two_d == (1 << (ilog2ceil(CKernelParams.param2) - 1)) && newIndex == CKernelParams.param2 - 1) {
+		GPhotonScan[newCell] = 0;
+	}
+    
 }
 
 #endif // COMPUTE_PASS_1

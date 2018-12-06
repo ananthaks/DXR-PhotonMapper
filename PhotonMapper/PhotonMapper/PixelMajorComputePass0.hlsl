@@ -28,6 +28,22 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
     GPhotonCount[DTid] = 0;
     GPhotonScan[DTid] = 0;
     GPhotonTempIndex[DTid] = 0;
+    
+    // Debug
+	/*
+    uint3 index;
+    index.x = CELL_1D_TO_3D_X(DTid.x);
+    index.y = CELL_1D_TO_3D_Y(DTid.x);
+    index.z = CELL_1D_TO_3D_Z(DTid.x);
+    GPhotonCount[index] = DTid.x;
+    GPhotonScan[index] = index.y;
+    //GPhotonTempIndex[index] = index.z;
+
+    GPhotonCount[DTid] = GPhotonCount[DTid];
+    GPhotonScan[DTid] = GPhotonScan[DTid];
+    GPhotonTempIndex[DTid] = GPhotonTempIndex[DTid];
+	*/
+    
 }
 
 #endif // COMPUTE_PASS_0
