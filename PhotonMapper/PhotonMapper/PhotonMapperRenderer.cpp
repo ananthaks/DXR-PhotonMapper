@@ -1578,9 +1578,9 @@ void PhotonMapperRenderer::OnRender()
         // 1. Photon Generation
         // 2. Photon Traversal
         // 3. Calculates the number of photons in each cell.
-		//DoFirstPassPhotonMapping();
+		DoFirstPassPhotonMapping();
 
-        //m_calculatePhotonMap = false;
+        m_calculatePhotonMap = false;
 
         // Try to keep this number to be a power of 2.
 		const int numItems = NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z;
@@ -1607,13 +1607,7 @@ void PhotonMapperRenderer::OnRender()
 			commandList->Reset(commandAllocator, nullptr);
 
         }
-        
-        
-
-        //m_computeConstantBuffer.param1 = power_2;
-        //m_computeConstantBuffer.param2 = numItems;
-        //DoComputePass(m_computeFirstPassPSO, numItems, 1, 1);
-
+       
 		/*
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
@@ -1635,14 +1629,14 @@ void PhotonMapperRenderer::OnRender()
 			commandList->Reset(commandAllocator, nullptr);
         }
 
+		/*
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
+		*/
         
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
-
-		/*
 
 		// Sort the photons
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
@@ -1651,13 +1645,11 @@ void PhotonMapperRenderer::OnRender()
 
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
-        commandList->Reset(commandAllocator, nullptr);
-		*/
-        
+        commandList->Reset(commandAllocator, nullptr);        
         
 	}
 
-	//DoSecondPassPhotonMapping();
+	DoSecondPassPhotonMapping();
 	CopyRaytracingOutputToBackbuffer();
 	//CopyGBUfferToBackBuffer(0U);
 
