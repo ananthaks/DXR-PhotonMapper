@@ -534,7 +534,7 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
             {
                 uint3 currCell = cellId + uint3(x, y, z);
 
-                currCell = clamp(currCell, uint3(0, 0, 0), uint3(NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z));
+                currCell = clamp(currCell, uint3(0, 0, 0), uint3(NUM_CELLS_IN_X - 1, NUM_CELLS_IN_Y - 1, NUM_CELLS_IN_Z - 1));
 
                 uint photonStart = GPhotonScan[currCell];
                 uint photonCount = GPhotonCount[currCell];
