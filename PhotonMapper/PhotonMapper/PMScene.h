@@ -74,10 +74,46 @@ namespace DXRPhotonMapper
         DirectX::XMFLOAT3 m_scale;
     };
 
+    enum class LightType
+    {
+        PointLight = 0,
+        AreaLight,
+        SpotLight,
+        Error,
+    };
+
+    struct AreaLight
+    {
+        bool isTwoSided;
+    };
+
+    struct PointLight
+    {
+        float dropOff;
+    };
+
+    struct SpotLight
+    {
+        float coneAngle;
+        float dropOff;
+    };
+
     struct Light
     {
-        DirectX::XMFLOAT3 m_lightPos;
+        std::string m_name;
+        LightType m_lightType;
+        float m_lightIntensity;
         DirectX::XMFLOAT3 m_lightColor;
+        DirectX::XMFLOAT3 m_translate;
+        DirectX::XMFLOAT3 m_rotate;
+        DirectX::XMFLOAT3 m_scale;
+
+        union
+        {
+            PointLight pointLight;
+            AreaLight areaLight;
+            SpotLight spotLight;
+        } LightDesc;
     };
 
     struct Camera

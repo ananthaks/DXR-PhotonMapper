@@ -35,9 +35,8 @@
   "lights": [
 
     {
-      "shape": "Point",
       "name": "Light Source1",
-      "type": "DiffuseAreaLight",
+      "type": "PointLight",
       "lightColor": [ 204, 176, 255 ],
       "intensity": 1.0,
       "transform": {
@@ -46,7 +45,8 @@
         "scale": [ 3, 3, 1 ]
       },
       "isDelta": false,
-      "twoSided": true
+      "twoSided": true,
+      "dropOff" : 5.0
     }
   ],
 

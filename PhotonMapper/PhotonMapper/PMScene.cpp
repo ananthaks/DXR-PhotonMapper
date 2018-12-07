@@ -58,6 +58,26 @@ namespace DXRPhotonMapper
         }
     }
 
+    LightType StringToLightType(const std::string& lightTypeString)
+    {
+        if(lightTypeString.compare("PointLight") == 0)
+        {
+            return LightType::PointLight;
+        }
+        else if(lightTypeString.compare("AreaLight") == 0)
+        {
+            return LightType::AreaLight;
+        }
+        else if(lightTypeString.compare("SpotLight") == 0)
+        {
+            return LightType::SpotLight;
+        }
+        else
+        {
+            return LightType::Error;
+        }
+    }
+
     int StringToMaterialIndex(const std::string& materialName, const std::vector<Material>& m_materials)
     {
         for(size_t i = 0; i < m_materials.size(); ++i)
@@ -280,7 +300,154 @@ namespace DXRPhotonMapper
 
     bool LoadJSONLights(picojson::value& root, std::vector<Light>& lights)
     {
-        return false;
+        std::string err = "";
+        const picojson::array& lightArray =  root.get("lights").get<picojson::array>();
+
+        lights.clear();
+        for(size_t i = 0; i < lightArray.size(); i++)
+        {
+            Light light = {};
+            const picojson::object& lightObj = lightArray[i].get<picojson::object>();
+
+            // Light Name
+            std::string lightName;
+            if(!ParseStringProperty(&lightName, &err, lightObj, "name", true))
+            {
+                OutputDebugString(L"Error Parsing name");
+            }
+            light.m_name = lightName;
+
+            // Light Intensity
+            double intensity = 0.0;
+            if(!ParseNumberProperty(&intensity, &err, lightObj, "intensity", true))
+            {
+                OutputDebugString(L"Error Parsing fov");
+            }
+            light.m_lightIntensity = float(intensity);
+
+            // Light color
+            std::vector<double> color(3);
+            if (!ParseNumberArrayProperty(&color, &err, lightObj, "lightColor", true)) 
+            {
+                OutputDebugString(L"Error Parsing color");
+            }
+            light.m_lightColor = {float(color[0]), float(color[1]), float(color[2])};
+
+            // Light Transform
+            picojson::object::const_iterator transformIt = lightObj.find("transform");
+            if ((transformIt != lightObj.end()) && (transformIt->second).is<picojson::object>()) 
+            {
+                const picojson::object &transformObj = (transformIt->second).get<picojson::object>();
+
+                std::vector<double> translate(3);
+                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false)) 
+                {
+                    OutputDebugString(L"Error Parsing translate");
+                }
+
+                std::vector<double> rotate(3);
+                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false)) 
+                {
+                    OutputDebugString(L"Error Parsing rotate");
+                }
+
+                std::vector<double> scale(3);
+                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false)) 
+                {
+                    OutputDebugString(L"Error Parsing scale");
+                }
+
+                light.m_translate = {float(translate[0]), float(translate[1]), float(translate[2])};
+                light.m_rotate = {float(rotate[0]), float(rotate[1]), float(rotate[2])};
+                light.m_scale = {float(scale[0]), float(scale[1]), float(scale[2])};
+            }
+
+            // Light Type
+            std::string lightType;
+            if(!ParseStringProperty(&lightType, &err, lightObj, "type", true))
+            {
+                OutputDebugString(L"Error Parsing type");
+            }
+            light.m_lightType = StringToLightType(lightType);
+
+
+            switch(light.m_lightType)
+            {
+                case LightType::PointLight:
+                {
+                    // Drop off
+                    double dropOff = 0.0;
+                    if(!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
+                    {
+                        OutputDebugString(L"Error Parsing dropOff");
+                    }
+                    PointLight pointLight = {};
+                    pointLight.dropOff = float(dropOff);
+                    
+                    light.LightDesc.pointLight = pointLight;
+                }
+                break;
+                case LightType::AreaLight:
+                {
+                    // Two Sided
+                    bool twoSided = false;
+                    if(!ParseBooleanProperty(&twoSided, &err, lightObj, "twoSided", true))
+                    {
+                        OutputDebugString(L"Error Parsing twoSided");
+                    }
+                    AreaLight areaLight = {};
+                    areaLight.isTwoSided = twoSided;
+
+                    light.LightDesc.areaLight = areaLight;
+                }
+                break;
+                case LightType::SpotLight:
+                {
+                    // Drop off
+                    double dropOff = 0.0;
+                    if(!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
+                    {
+                        OutputDebugString(L"Error Parsing dropOff");
+                    }
+
+                    // Cone Angle
+                    double coneAngle = 0.0;
+                    if(!ParseNumberProperty(&coneAngle, &err, lightObj, "coneAngle", true))
+                    {
+                        OutputDebugString(L"Error Parsing coneAngle");
+                    }
+                    SpotLight spotLight = {};
+                    spotLight.dropOff = float(dropOff);
+                    spotLight.coneAngle = float(coneAngle);
+
+                    light.LightDesc.spotLight = spotLight;
+                }
+                break;
+                case LightType::Error:
+                default:
+                {
+                    OutputDebugString(L"Unknown Light Type\n");
+                }
+                break;
+            }
+
+            lights.push_back(light);
+        }
+
+        // For Debug Purpose only
+        for(size_t i = 0; i < lights.size(); ++i)
+        {
+            std::wstringstream wstr;
+            wstr << "Found Light " << i << std::endl;
+            wstr << " Name " << lights[i].m_name.c_str() << std::endl;
+            wstr << " Intensity " << lights[i].m_lightIntensity << std::endl;
+            wstr << " Color " << lights[i].m_lightColor.x << ", " << lights[i].m_lightColor.y << ", " << lights[i].m_lightColor.z << std::endl;
+            wstr << " translate " << lights[i].m_translate.x << ", " << lights[i].m_translate.y << ", " << lights[i].m_translate.z << std::endl;
+            wstr << " rotate " << lights[i].m_rotate.x << ", " << lights[i].m_rotate.y << ", " << lights[i].m_rotate.z << std::endl;
+            wstr << " scale " << lights[i].m_scale.x << ", " << lights[i].m_scale.y << ", " << lights[i].m_scale.z << std::endl;
+            OutputDebugStringW(wstr.str().c_str());
+        }
+        return true;
     }
 
     //------------------------------------------------------
