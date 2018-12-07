@@ -23,18 +23,18 @@ typedef UINT16 Index;
 
 #define MAX_RAY_RECURSION_DEPTH 5
 
-#define MAX_SCENE_SIZE 2
-#define MAX_SCENE_SIZE3 MAX_SCENE_SIZE * MAX_SCENE_SIZE * MAX_SCENE_SIZE
+#define MAX_SCENE_SIZE_HALF 8
+#define MAX_SCENE_SIZE 2.0 * MAX_SCENE_SIZE_HALF
 
-#define CELL_SIZE 1
+#define CELL_SIZE 1.0
 
 #define NUM_CELLS_IN_X MAX_SCENE_SIZE / CELL_SIZE
 #define NUM_CELLS_IN_Y MAX_SCENE_SIZE / CELL_SIZE
 #define NUM_CELLS_IN_Z MAX_SCENE_SIZE / CELL_SIZE
 
-#define POS_TO_CELL_X(pos_x) (pos_x + MAX_SCENE_SIZE) / (2.0 * NUM_CELLS_IN_X)
-#define POS_TO_CELL_Y(pos_y) (pos_y + MAX_SCENE_SIZE) / (2.0 * NUM_CELLS_IN_Y)
-#define POS_TO_CELL_Z(pos_z) (pos_z + MAX_SCENE_SIZE) / (2.0 * NUM_CELLS_IN_Z)
+#define POS_TO_CELL_X(pos_x) NUM_CELLS_IN_X * (pos_x + MAX_SCENE_SIZE) / (2.0 * MAX_SCENE_SIZE)
+#define POS_TO_CELL_Y(pos_y) NUM_CELLS_IN_Y * (pos_y + MAX_SCENE_SIZE) / (2.0 * MAX_SCENE_SIZE)
+#define POS_TO_CELL_Z(pos_z) NUM_CELLS_IN_Z * (pos_z + MAX_SCENE_SIZE) / (2.0 * MAX_SCENE_SIZE)
 
 // This Assumes the implementation is in row-major
 // i.e. the cells are placed row-wise first, the column and then depth

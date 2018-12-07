@@ -394,33 +394,9 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 	return INV_PI * albedo;
 }
 
-#define PHOTON_CLOSENESS 0.5f
-
-inline float3 ColorToWorld(float3 color)
-{
-	return ((color - float3(0.5f, 0.5f, 0.5f)) * (2.0f * MAX_SCENE_SIZE));
-}
-
-uint3 PosToCellId(float3 worldPosition)
-{
-	float3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
-	return uint3(floor(correctWorldPos / CELL_SIZE));
-}
+#define PHOTON_CLOSENESS 1.0f
 
 
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
 
 inline float4 PerformNaiveSearch(float3 intersectionPoint)
 {
@@ -487,10 +463,18 @@ for (int photon = photonStart; photon < photonCount; ++photon)
 
 inline float4 PerformSorted(float3 intersectionPoint)
 {
-	uint3 cellId = PosToCellId(intersectionPoint);
 
-	uint3 minCellSearch = cellId - uint3(1, 1, 1);
-	uint3 maxCellSearch = clamp(cellId + uint3(1, 1, 1), uint3(0, 0, 0), uint3(MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1));
+	uint cellIdX = floor(POS_TO_CELL_X(intersectionPoint.x));
+	uint cellIdY = floor(POS_TO_CELL_Y(intersectionPoint.y));
+	uint cellIdZ = floor(POS_TO_CELL_Z(intersectionPoint.z));
+
+	// Increment (with synchronization) the photon counter for that particular cell
+	uint3 cellId = uint3(cellIdX, cellIdY, cellIdZ);
+
+	uint radius = ceil(PHOTON_CLOSENESS);
+
+	uint3 minCellSearch = clamp(cellId - uint3(radius, radius, radius), uint3(0, 0, 0), uint3(MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1));
+	uint3 maxCellSearch = clamp(cellId + uint3(radius, radius, radius), uint3(0, 0, 0), uint3(MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1));
 
 	float4 color = float4(0.0, 0.0, 0.0, 0.0);
 	int numPhotons = 0;
@@ -506,10 +490,10 @@ inline float4 PerformSorted(float3 intersectionPoint)
 				uint photonStart = GPhotonScan[currCell];
 				uint photonCount = GPhotonCount[currCell];
 
-				for (int photon = photonStart; photon < photonCount; ++photon)
+				for (int photon = photonStart; photon < photonCount + photonStart; ++photon)
 				{
 					uint3 index = Cell1DToPhotonID(photon);
-					float dist = distance(intersectionPoint, ColorToWorld(GPhotonSortedPos[index].xyz));
+					float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
 
 					if (dist < PHOTON_CLOSENESS)
 					{

@@ -412,31 +412,6 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
     return INV_PI * albedo;
 }
 
-inline float3 WorldToColor(float3 worldPosition)
-{
-	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
-}
-
-uint3 PosToCellId(float3 worldPosition)
-{
-	uint3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
-	return correctWorldPos;
-}
-
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
-
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
@@ -580,7 +555,14 @@ void MyMissShader(inout RayPayload payload)
         payload.color = background;
         payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		return;
     }
+
+	int depth = payload.extraInfo.y;
+
+	for (int i = depth; i < MAX_RAY_RECURSION_DEPTH; i++) {
+		GPhotonPos[uint3(DispatchRaysIndex().xy, i)] = float4(0, 0, 0, -1);
+	}
 }
 
 #endif // RAYTRACING_HLSL

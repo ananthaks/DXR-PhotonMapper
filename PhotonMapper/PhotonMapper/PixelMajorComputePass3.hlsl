@@ -21,26 +21,6 @@ RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
-uint3 PosToCellId(float3 worldPosition)
-{
-	float3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
-	return uint3(floor(correctWorldPos / CELL_SIZE));
-}
-
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
-
 uint3 Cell1DToPhotonID(uint id)
 {
 	uint3 temp;
@@ -57,7 +37,16 @@ void CSMain(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid
 	float4 pos = GPhotonPos[DTid];
 	float4 col = GPhotonColor[DTid];
 
-	uint3 cellID = PosToCellId(pos.xyz);
+	if (pos.w - -1.f < 0.0001f) {
+		return;
+	}
+
+	uint cellIdX = floor(POS_TO_CELL_X(pos.x));
+	uint cellIdY = floor(POS_TO_CELL_Y(pos.y));
+	uint cellIdZ = floor(POS_TO_CELL_Z(pos.z));
+
+	// Increment (with synchronization) the photon counter for that particular cell
+	uint3 cellID = uint3(cellIdX, cellIdY, cellIdZ);
 
 	// Place photon in new buffer
 	uint newVal = 1;

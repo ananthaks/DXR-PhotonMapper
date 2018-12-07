@@ -1568,7 +1568,7 @@ void PhotonMapperRenderer::OnRender()
 	if (m_calculatePhotonMap)
 	{
         // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
-        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z, 1, 1); //TODO connie change after done debugging
+        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
         
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
@@ -1628,15 +1628,13 @@ void PhotonMapperRenderer::OnRender()
 			ScanWaitForGPU(commandQueue);
 			commandList->Reset(commandAllocator, nullptr);
         }
-
-		/*
-        m_deviceResources->ExecuteCommandList();
-        m_deviceResources->WaitForGpu();
-        commandList->Reset(commandAllocator, nullptr);
-		*/
         
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
+
+		m_deviceResources->ExecuteCommandList();
+		m_deviceResources->WaitForGpu();
+		commandList->Reset(commandAllocator, nullptr);
 
 		// Sort the photons
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
