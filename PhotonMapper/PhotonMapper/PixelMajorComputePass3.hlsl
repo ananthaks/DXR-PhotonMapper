@@ -21,8 +21,6 @@ RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 ConstantBuffer<PixelMajorComputeConstantBuffer> CKernelParams : register(b0);
 
-
-
 uint3 Cell1DToPhotonID(uint id)
 {
     uint width, height, depth;

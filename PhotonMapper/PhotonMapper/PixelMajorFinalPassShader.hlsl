@@ -395,7 +395,6 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 }
 
 
-
 inline float4 PerformNaiveSearch(float3 intersectionPoint)
 {
 	uint width, height, depth;
