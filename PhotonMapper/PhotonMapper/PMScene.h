@@ -15,10 +15,46 @@ namespace DXRPhotonMapper
         std::vector<Index> m_indices;
     };
 
+    enum class MaterialFlag
+    {
+        BSDF_REFLECTION = 1 << 0,   // This BxDF handles rays that are reflected off surfaces
+        BSDF_TRANSMISSION = 1 << 1, // This BxDF handles rays that are transmitted through surfaces
+        BSDF_DIFFUSE = 1 << 2,      // This BxDF represents diffuse energy scattering, which is uniformly random
+        BSDF_GLOSSY = 1 << 3,       // This BxDF represents glossy energy scattering, which is biased toward certain directions
+        BSDF_SPECULAR = 1 << 4,     // This BxDF handles specular energy scattering, which has no element of randomness
+        BSDF_ALL = BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION
+    };
+
+    struct BaseMat
+    {
+        DirectX::XMFLOAT3 m_albedo;
+        MaterialFlag m_matIdentifier;
+    };
+
+    struct DiffuseMat : BaseMat
+    {
+    };
+
+    struct ReflectiveMat : BaseMat
+    {
+        float roughness;
+    };
+
+    struct TransmissiveMat : BaseMat
+    {
+        float refractiveIndex;
+    };
+
+    struct SpecularMat : BaseMat
+    {
+        float sigma;
+    };
+
     struct Material
     {
         std::string m_name;
-        DirectX::XMFLOAT3 m_baseColor;
+        MaterialFlag m_materialFlags;
+        std::vector<BaseMat> m_materials;
     };
 
     enum class PrimitiveType

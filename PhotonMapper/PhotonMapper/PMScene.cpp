@@ -217,7 +217,64 @@ namespace DXRPhotonMapper
 
     bool LoadJSONMaterials(picojson::value& root, std::vector<Material>& materials)
     {
-        return false;
+        std::string err = "";
+        const picojson::array& materialArray =  root.get("materials").get<picojson::array>();
+
+        materials.clear();
+        for(size_t i = 0; i < materialArray.size(); i++)
+        {
+            Material material = {};
+            const picojson::object& materialObj = materialArray[i].get<picojson::object>();
+
+            // Material Name
+            std::string matName;
+            if(!ParseStringProperty(&matName, &err, materialObj, "name", true))
+            {
+                OutputDebugString(L"Error Parsing name");
+            }
+            material.m_name = matName;
+
+            // Material albedo
+            std::vector<double> albedo(3);
+            if (!ParseNumberArrayProperty(&albedo, &err, materialObj, "albedo", false)) 
+            {
+                OutputDebugString(L"Error Parsing albedo");
+            }
+
+            // Material Type
+            std::string matType;
+            if(!ParseStringProperty(&matType, &err, materialObj, "type", true))
+            {
+                OutputDebugString(L"Error Parsing type");
+            }
+
+            if(matType.compare("MatteMaterial") == 0)
+            {
+                material.m_materialFlags = MaterialFlag::BSDF_DIFFUSE;
+                
+                DiffuseMat diffuseMat = {};
+                diffuseMat.m_albedo = {float(albedo[0]), float(albedo[1]), float(albedo[2])};
+                diffuseMat.m_matIdentifier = MaterialFlag::BSDF_DIFFUSE;
+
+                material.m_materials.push_back(diffuseMat);
+
+                materials.push_back(material);
+            }
+            else
+            {
+                OutputDebugString(L"Unrecognized Material");
+            }
+        }
+
+        // For Debug Purpose only
+        for(size_t i = 0; i < materials.size(); ++i)
+        {
+            std::wstringstream wstr;
+            wstr << "Found Material " << i << std::endl;
+            wstr << " Name " << materials[i].m_name.c_str() << std::endl;
+            OutputDebugStringW(wstr.str().c_str());
+        }
+        return true;
 
     }
 
