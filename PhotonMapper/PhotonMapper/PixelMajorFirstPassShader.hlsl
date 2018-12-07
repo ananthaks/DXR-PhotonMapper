@@ -330,7 +330,6 @@ void MyRaygenShader()
     // Set seed for PRNG
     rng_state = uint(wang_hash(samplePoint.x + DispatchRaysDimensions().x * samplePoint.y));
 
-
     // Debug PRNG
     //float rand = rand_xorshift();
     //RenderTarget[samplePoint] = float4(rand, rand, rand, 1);
@@ -348,12 +347,16 @@ void MyRaygenShader()
     ray.TMin = 0.001;
     ray.TMax = 10000.0;
 
+    float numSamples = 1;//DispatchRaysDimensions().x * DispatchRaysDimensions().y;
+
+    float4 lightColor = g_sceneCB.lightDiffuseColor / numSamples;
+
     // TODO max depth is 5. Do we want to change that?
     // Initialize the payload
     RayPayload payload = 
     { 
         //float4(0, 0, 0, 0), // Hit Color
-        g_sceneCB.lightDiffuseColor, // Photon's starting color
+        lightColor, // Photon's starting color
         float4(0, 0, 0, 0), // Hit Location
         float4(1, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
         float3(1, 1, 1), // Throughput
@@ -365,7 +368,6 @@ void MyRaygenShader()
 
     // Render the photons on the screen
     //VisualizePhoton(payload, screenDims);
-    
 }
 
 // From hw 3
@@ -412,31 +414,6 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
     return INV_PI * albedo;
 }
 
-inline float3 WorldToColor(float3 worldPosition)
-{
-	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
-}
-
-uint3 PosToCellId(float3 worldPosition)
-{
-	uint3 correctWorldPos = (worldPosition + float3(MAX_SCENE_SIZE, MAX_SCENE_SIZE, MAX_SCENE_SIZE)) / 2.0;
-	return correctWorldPos;
-}
-
-uint Cell3DTo1D(uint3 cellId)
-{
-	return uint(cellId.x + MAX_SCENE_SIZE * cellId.y + MAX_SCENE_SIZE * MAX_SCENE_SIZE * cellId.z); // TODO check if correct
-}
-
-uint3 Cell1DTo3D(uint id)
-{
-	uint3 temp;
-	temp.x = id % MAX_SCENE_SIZE;
-	temp.y = (id / MAX_SCENE_SIZE) % MAX_SCENE_SIZE;
-	temp.z = id / (MAX_SCENE_SIZE * MAX_SCENE_SIZE);
-	return temp;
-}
-
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
@@ -446,7 +423,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
         return;
     }
 
-    int depth = payload.extraInfo.y; // Using [1] crashes...
+    int depth = payload.extraInfo.y; 
     if (depth >= MAX_RAY_RECURSION_DEPTH) {
         return;
     }
@@ -507,23 +484,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float pdf;
 
     float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-
     float3 wiW = normalize(mul(wi, tangentToWorld));
-    
-
-    /*
-    float3 f = INV_PI * triangleColor;
-    float3 wiW = normalize(calculateRandomDirectionInHemisphere(triangleNormal));
-    float d = dot(wiW, triangleNormal);
-    float pdf;
-    if (d < 0) {
-        pdf = 0;
-    } else {
-        pdf = INV_PI * d;
-    }
-    */
-    
-    if (pdf < EPSILON) {
+   
+    if (pdf < EPSILON) 
+    {
         return;
     }
 
@@ -531,7 +495,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 n_throughput = payload.throughput * curr_throughput;
 
     depth++;
-    payload.color = float4(payload.color * curr_throughput, 1); // Photon's starting color
+    payload.color = float4(payload.color.xyz * curr_throughput, 1); // Photon's starting color
     payload.hitPosition = float4(hitPosition, 0.0); // Hit Location
     payload.extraInfo = float4(1.0f, depth, 0, 0); // Any extra information - Payload has to be 16 byte aligned
     payload.throughput = n_throughput; // Throughput
@@ -580,7 +544,17 @@ void MyMissShader(inout RayPayload payload)
         payload.color = background;
         payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		return;
     }
+
+	int depth = payload.extraInfo.y;
+
+    GPhotonPos[uint3(DispatchRaysIndex().xy, depth)] = float4(0, 0, 0, -1);
+
+    /*
+	for (int i = depth; i < MAX_RAY_RECURSION_DEPTH; i++) {
+		;
+	}*/
 }
 
 #endif // RAYTRACING_HLSL

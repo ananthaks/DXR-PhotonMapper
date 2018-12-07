@@ -141,6 +141,9 @@
     <FxCompile Include="PhotonMajorPrePassShader.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="PixelMajorComputePass01.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl" />

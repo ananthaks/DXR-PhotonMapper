@@ -24,6 +24,7 @@ const wchar_t* PhotonMapperRenderer::c_closestHitShaderName = L"MyClosestHitShad
 const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
 
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass0 = L"PixelMajorComputePass0.cso";
+const LPCWSTR PhotonMapperRenderer::c_computeShaderPass01 = L"PixelMajorComputePass0.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
 const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
@@ -97,6 +98,7 @@ void PhotonMapperRenderer::OnInit()
 // Update camera matrices passed into the shader.
 void PhotonMapperRenderer::UpdateCameraMatrices()
 {
+    OutputDebugString(L"UpdateCameraMatrices\n");
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
 
     m_sceneCB[frameIndex].cameraPosition = m_eye;
@@ -238,6 +240,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
 	CreateSecondPassPhotonPipelineStateObject();
 
 	CreateComputePipelineStateObject(c_computeShaderPass0, m_computeInitializePSO);
+	CreateComputePipelineStateObject(c_computeShaderPass01, m_computeInitializePSO2);
 	CreateComputePipelineStateObject(c_computeShaderPass1, m_computeFirstPassPSO);
     CreateComputePipelineStateObject(c_computeShaderPass2, m_computeSecondPassPSO);
 	CreateComputePipelineStateObject(c_computeShaderPass3, m_computeThirdPassPSO);
@@ -1197,6 +1200,84 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
     case '3': // DirectX Raytracing
         SelectRaytracingAPI(RaytracingAPI::DirectXRaytracing);
         break;
+
+        // Camera Movements
+    case 'W':
+    {
+
+        XMMATRIX translate = XMMatrixTranslation(0, 0, 0.1f);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'S':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, 0, -0.1f);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'Q':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, 0.1f, 0);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'E':
+    {
+        XMMATRIX translate = XMMatrixTranslation(0, -0.1f, 0);
+        m_eye = XMVector3Transform(m_eye, translate);
+        m_up = XMVector3Transform(m_up, translate);
+        m_at = XMVector3Transform(m_at, translate);
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'A':
+    {
+        XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(3));
+
+        /*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
+        ref = ref - eye;
+        ref = glm::vec3(rotation * glm::vec4(ref, 1));
+        ref = ref + eye;
+        RecomputeAttributes();*/
+
+        XMVECTOR tempAt = m_at - m_eye;
+        tempAt = XMVector3Transform(tempAt, rotate);
+        m_at = tempAt + m_eye;
+
+        UpdateCameraMatrices();
+    }
+    break;
+
+    case 'D':
+    {
+        XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(-3));
+
+        /*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
+        ref = ref - eye;
+        ref = glm::vec3(rotation * glm::vec4(ref, 1));
+        ref = ref + eye;
+        RecomputeAttributes();*/
+
+        XMVECTOR tempAt = m_at - m_eye;
+        tempAt = XMVector3Transform(tempAt, rotate);
+        m_at = tempAt + m_eye;
+
+        UpdateCameraMatrices();
+    }
+    break;
     default:
         break;
     }
@@ -1369,7 +1450,7 @@ void PhotonMapperRenderer::DoSecondPassPhotonMapping()
 	}
 }
 
-void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, int xThreads, int yThreads, int zThreads)
+void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, UINT xThreads, UINT yThreads, UINT zThreads)
 {
 	auto commandList = m_deviceResources->GetCommandList();
 	auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -1568,8 +1649,14 @@ void PhotonMapperRenderer::OnRender()
 	if (m_calculatePhotonMap)
 	{
         // Clear the photon Count - Find a better way to do this, instead of launching a new compute shader
-        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X * NUM_CELLS_IN_Y * NUM_CELLS_IN_Z, 1, 1); //TODO connie change after done debugging
+        DoComputePass(m_computeInitializePSO, NUM_CELLS_IN_X, NUM_CELLS_IN_Y, NUM_CELLS_IN_Z);
         
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
+        commandList->Reset(commandAllocator, nullptr);
+
+        DoComputePass(m_computeInitializePSO2, m_gBufferWidth, m_gBufferHeight, m_gBufferDepth);
+
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
         commandList->Reset(commandAllocator, nullptr);
@@ -1590,8 +1677,6 @@ void PhotonMapperRenderer::OnRender()
 		CopyUAVData(m_photonCountBuffer, m_photonScanBuffer);
         
 		// Exclusive scan up-sweep
-
-        
         int power_2 = 1;
         for(int d = 0; d < log_n; ++d)
         {
@@ -1628,15 +1713,13 @@ void PhotonMapperRenderer::OnRender()
 			ScanWaitForGPU(commandQueue);
 			commandList->Reset(commandAllocator, nullptr);
         }
-
-		/*
-        m_deviceResources->ExecuteCommandList();
-        m_deviceResources->WaitForGpu();
-        commandList->Reset(commandAllocator, nullptr);
-		*/
         
 		// Copy the count data to a dynamic index 
 		CopyUAVData(m_photonScanBuffer, m_photonTempIndexBuffer);
+
+		m_deviceResources->ExecuteCommandList();
+		m_deviceResources->WaitForGpu();
+		commandList->Reset(commandAllocator, nullptr);
 
 		// Sort the photons
 		m_computeConstantBuffer.param1 = m_gBufferWidth;
@@ -1715,7 +1798,8 @@ void PhotonMapperRenderer::CalculateFrameStats()
         }
         windowText << setprecision(2) << fixed
             << L"    fps: " << fps << L"     ~Million Primary Rays/s: " << MRaysPerSecond
-            << L"    GPU[" << m_deviceResources->GetAdapterID() << L"]: " << m_deviceResources->GetAdapterDescription();
+            << L"    GPU[" << m_deviceResources->GetAdapterID() << L"]: " << m_deviceResources->GetAdapterDescription()
+            << L"    # Photons " << NumPhotons;
         SetCustomWindowText(windowText.str().c_str());
     }
 }

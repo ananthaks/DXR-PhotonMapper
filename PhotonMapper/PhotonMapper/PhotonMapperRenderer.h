@@ -41,7 +41,7 @@ private:
     static const UINT NumPhotonCountBuffer = 1;
     static const UINT NumPhotonScanBuffer = 1;
     static const UINT NumPhotonTempIndexBuffer = 1;
-    static const UINT NumPhotons = 1000;
+    static const UINT NumPhotons = 1000000;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
@@ -80,6 +80,7 @@ private:
 
 	// Compute Stage attributes
 	ComPtr<ID3D12PipelineState> m_computeInitializePSO;
+	ComPtr<ID3D12PipelineState> m_computeInitializePSO2;
 	ComPtr<ID3D12PipelineState> m_computeFirstPassPSO;
 	ComPtr<ID3D12PipelineState> m_computeSecondPassPSO;
 	ComPtr<ID3D12PipelineState> m_computeThirdPassPSO;
@@ -154,6 +155,7 @@ private:
     static const wchar_t* c_missShaderName;
 
     static const LPCWSTR c_computeShaderPass0;
+    static const LPCWSTR c_computeShaderPass01;
     static const LPCWSTR c_computeShaderPass1;
     static const LPCWSTR c_computeShaderPass2;
 	static const LPCWSTR c_computeShaderPass3;
@@ -187,7 +189,7 @@ private:
 
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
-	void DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, int xThreads, int yThreads, int zThreads);
+	void DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, UINT xThreads, UINT yThreads, UINT zThreads);
 
     void CreateConstantBuffers();
 	void CreateComputeConstantBuffer();
