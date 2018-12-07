@@ -6,6 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_LOADER_IMPLEMENTATION
 #include "tiny_gltf_loader.h"
+#include "JSONParsingHelpers.h"
 
 namespace DXRPhotonMapper
 {
@@ -41,12 +42,194 @@ namespace DXRPhotonMapper
         }
     }
 
-    
+    PrimitiveType StringToPrimitiveType(const std::string& primTypeString)
+    {
+        if(primTypeString.compare("SquarePlane") == 0)
+        {
+            return PrimitiveType::SquarePlane;
+        }
+        else if(primTypeString.compare("Cube") == 0)
+        {
+            return PrimitiveType::Cube;
+        }
+        else
+        {
+            return PrimitiveType::Error;
+        }
+    }
+
+    int StringToMaterialIndex(const std::string& materialName, const std::vector<Material>& m_materials)
+    {
+        for(size_t i = 0; i < m_materials.size(); ++i)
+        {
+            if(m_materials[i].m_name.compare(materialName) == 0)
+            {
+                return int(i);
+            }
+        }
+        return -1;
+    }
+
+
+    bool LoadJSONCamera(picojson::value& root, Camera& camera)
+    {
+        const picojson::object& cameraObj = root.get("camera").get<picojson::object>();
+
+        std::string err = "";
+
+        double width = 0.0;
+        if(!ParseNumberProperty(&width, &err, cameraObj, "width", true))
+        {
+            OutputDebugString(L"Error Parsing width");
+        }
+
+        double height = 0.0;
+        if(!ParseNumberProperty(&height, &err, cameraObj, "height", true))
+        {
+            OutputDebugString(L"Error Parsing height");
+        }
+
+        double fov = 0.0;
+        if(!ParseNumberProperty(&fov, &err, cameraObj, "fov", true))
+        {
+            OutputDebugString(L"Error Parsing fov");
+        }
+
+        std::vector<double> eye(3);
+        if(!ParseNumberArrayProperty(&eye, &err, cameraObj, "eye", true))
+        {
+            OutputDebugString(L"Error Parsing eye");
+        }
+        
+        std::vector<double> ref(3);
+        if(!ParseNumberArrayProperty(&ref, &err, cameraObj, "ref", true))
+        {
+            OutputDebugString(L"Error Parsing ref");
+        }
+
+        std::vector<double> worldUp(3);
+        if(!ParseNumberArrayProperty(&worldUp, &err, cameraObj, "worldUp", true))
+        {
+            OutputDebugString(L"Error Parsing worldUp");
+        }
+
+        camera.m_width = UINT(width);
+        camera.m_height = UINT(height);
+        camera.m_fov = float(fov);
+        camera.m_eye = {float(eye[0]), float(eye[1]), float(eye[2])};
+        camera.m_ref = {float(ref[0]), float(ref[1]), float(ref[2])};
+        camera.m_up = {float(worldUp[0]), float(worldUp[1]), float(worldUp[2])};
+
+        // Just for Debugging
+        std::wstringstream wstr;
+        wstr << "Loading Camera " << std::endl;
+        wstr << " m_width " << camera.m_width << std::endl;
+        wstr << " m_height " << camera.m_height << std::endl;
+        wstr << " m_fov " << camera.m_fov << std::endl;
+        wstr << " m_eye " << camera.m_eye.x << ", " << camera.m_eye.y << ", " << camera.m_eye.z << std::endl;
+        wstr << " m_ref " << camera.m_ref.x << ", " << camera.m_ref.y << ", " << camera.m_ref.z << std::endl;
+        wstr << " m_up " << camera.m_up.x << ", " << camera.m_up.y << ", " << camera.m_up.z << std::endl;
+        OutputDebugStringW(wstr.str().c_str());
+
+        return true;
+    }
+
+    bool LoadJSONPrimitives(picojson::value& root, std::vector<Primitive>& primitives, const std::vector<Material>& m_materials)
+    {
+        std::string err = "";
+        const picojson::array& primitiveArray =  root.get("primitives").get<picojson::array>();
+
+        primitives.clear();
+        for(size_t i = 0; i < primitiveArray.size(); i++)
+        {
+            Primitive primitive = {};
+            const picojson::object& primitiveObj = primitiveArray[i].get<picojson::object>();
+
+            // Shape Type
+            std::string shapeName;
+            if(!ParseStringProperty(&shapeName, &err, primitiveObj, "shape", true))
+            {
+                OutputDebugString(L"Error Parsing shape");
+            }
+            primitive.m_primitiveType = StringToPrimitiveType(shapeName);
+
+            // Primitive Identifier
+            std::string primName;
+            if(!ParseStringProperty(&primName, &err, primitiveObj, "name", true))
+            {
+                OutputDebugString(L"Error Parsing name");
+            }
+            primitive.m_name = primName;
+            
+            // Primitive Material ID
+            std::string matName;
+            if(!ParseStringProperty(&matName, &err, primitiveObj, "material", true))
+            {
+                OutputDebugString(L"Error Parsing material");
+            }
+            primitive.m_materialID = StringToMaterialIndex(matName, m_materials);
+            
+            // Primitive Transform
+            picojson::object::const_iterator transformIt = primitiveObj.find("transform");
+            if ((transformIt != primitiveObj.end()) && (transformIt->second).is<picojson::object>()) 
+            {
+                const picojson::object &transformObj = (transformIt->second).get<picojson::object>();
+
+                std::vector<double> translate(3);
+                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false)) 
+                {
+                    OutputDebugString(L"Error Parsing translate");
+                }
+
+                std::vector<double> rotate(3);
+                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false)) 
+                {
+                    OutputDebugString(L"Error Parsing rotate");
+                }
+
+                std::vector<double> scale(3);
+                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false)) 
+                {
+                    OutputDebugString(L"Error Parsing scale");
+                }
+
+                primitive.m_translate = {float(translate[0]), float(translate[1]), float(translate[2])};
+                primitive.m_rotate = {float(rotate[0]), float(rotate[1]), float(rotate[2])};
+                primitive.m_scale = {float(scale[0]), float(scale[1]), float(scale[2])};
+            }
+            primitives.push_back(primitive);
+        }
+
+        // For Debug Purpose only
+        for(size_t i = 0; i < primitives.size(); ++i)
+        {
+            std::wstringstream wstr;
+            wstr << "Found Primitive " << i << std::endl;
+            wstr << " Name " << primitives[i].m_name.c_str() << std::endl;
+            wstr << " Material " << primitives[i].m_materialID << std::endl;
+            wstr << " translate " << primitives[i].m_translate.x << ", " << primitives[i].m_translate.y << ", " << primitives[i].m_translate.z << std::endl;
+            wstr << " rotate " << primitives[i].m_rotate.x << ", " << primitives[i].m_rotate.y << ", " << primitives[i].m_rotate.z << std::endl;
+            wstr << " scale " << primitives[i].m_scale.x << ", " << primitives[i].m_scale.y << ", " << primitives[i].m_scale.z << std::endl;
+            OutputDebugStringW(wstr.str().c_str());
+        }
+        return true;
+    }
+
+    bool LoadJSONMaterials(picojson::value& root, std::vector<Material>& materials)
+    {
+        return false;
+
+    }
+
+    bool LoadJSONLights(picojson::value& root, std::vector<Light>& lights)
+    {
+        return false;
+    }
 
     //------------------------------------------------------
     // LoadPicoScene
     //------------------------------------------------------
-    bool LoadPicoScene(const char *str, unsigned int length)
+    bool PMScene::LoadPicoScene(const char *str, unsigned int length)
     {
         std::wstringstream wstr;
         picojson::value v;
@@ -54,8 +237,52 @@ namespace DXRPhotonMapper
 
         if (!perr.empty()) 
         {
-            OutputDebugString(L"Could not parse JSON file");
+            OutputDebugString(L"Could not parse JSON file\n");
             return false;
+        }
+
+        if (!(v.contains("camera") && v.get("camera").is<picojson::object>())) 
+        {
+            OutputDebugString(L"JSON File Does not contain camera\n");
+            return false;
+        }
+
+        if (!(v.contains("primitives") && v.get("primitives").is<picojson::array>())) 
+        {
+            OutputDebugString(L"JSON File Does not contain primitives\n");
+            return false;
+        }
+
+        if (!(v.contains("lights") && v.get("lights").is<picojson::array>())) 
+        {
+            OutputDebugString(L"JSON File Does not contain lights\n");
+            return false;
+        }
+
+        if (!(v.contains("materials") && v.get("materials").is<picojson::array>())) 
+        {
+            OutputDebugString(L"JSON File Does not contain materials\n");
+            return false;
+        }
+
+        if(!LoadJSONCamera(v, m_camera))
+        {
+            OutputDebugString(L"Error Parsing Camera\n");
+        }
+
+        if(!LoadJSONMaterials(v, m_materials))
+        {
+            OutputDebugString(L"Error Parsing Materials\n");
+        }
+
+        if(!LoadJSONPrimitives(v, m_primitives, m_materials))
+        {
+            OutputDebugString(L"Error Parsing Primitives\n");
+        }
+
+        if(!LoadJSONLights(v, m_lights))
+        {
+            OutputDebugString(L"Error Parsing Lights\n");
         }
 
         /*

@@ -168,6 +168,7 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="DirectXRaytracingHelper.h" />
     <ClInclude Include="HlslCompat.h" />
+    <ClInclude Include="JSONParsingHelpers.h" />
     <ClInclude Include="PhotonMajorRenderer.h" />
     <ClInclude Include="PhotonMapperRenderer.h" />
     <ClInclude Include="picojson.h" />

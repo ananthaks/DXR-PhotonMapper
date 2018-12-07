@@ -1,5 +1,62 @@
 {
-  "string" : "it works",
-  "number": 3.14,
-  "integer" : 5
+  "camera": {
+    "ref": [ 0, 2.5, 0 ],
+    "eye": [ 0, 6.5, -30 ],
+    "worldUp": [ 0, 1, 0 ],
+    "fov": 19.5,
+    "width": 512,
+    "height": 512
+  },
+
+  "primitives": [
+    {
+      "shape": "SquarePlane",
+      "name": "floor",
+      "material": "cloth",
+      "transform": {
+        "translate": [ 0, -1.9, 0 ],
+        "rotate": [ -90, 0, 0 ],
+        "scale": [ 20, 20, 1 ]
+      }
+    },
+
+    {
+      "shape": "SquarePlane",
+      "name": "backwall",
+      "material": "cloth",
+      "transform": {
+        "translate": [ 0, 5, 10 ],
+        "rotate": [ 0, 0, 0 ],
+        "scale": [ 20, 20, 1 ]
+      }
+    }
+  ],
+
+  "lights": [
+
+    {
+      "shape": "Point",
+      "name": "Light Source1",
+      "type": "DiffuseAreaLight",
+      "lightColor": [ 204, 176, 255 ],
+      "intensity": 1.0,
+      "transform": {
+        "translate": [ 3, 7.45, -20 ],
+        "rotate": [ 60, 0, 0 ],
+        "scale": [ 3, 3, 1 ]
+      },
+      "isDelta": false,
+      "twoSided": true
+    }
+  ],
+
+  "materials": [
+
+    {
+      "type": "MatteMaterial",
+      "name": "matteWhite",
+      "albedo": [ 0.85, 0.81, 0.78 ],
+      "sigma": 0
+    }
+  ]
 }
