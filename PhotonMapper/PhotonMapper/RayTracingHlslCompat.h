@@ -21,13 +21,13 @@ using namespace DirectX;
 typedef UINT16 Index;
 #endif
 
-#define MAX_RAY_RECURSION_DEPTH 5
+#define MAX_RAY_RECURSION_DEPTH 2
 
 // Assumption : The scene bounds are considered as [-MAX_SCENE_SIZE_HALF, +MAX_SCENE_SIZE_HALF]
 #define MAX_SCENE_SIZE_HALF 8.0f
 #define MAX_SCENE_SIZE 2.0f * MAX_SCENE_SIZE_HALF
 
-#define CELL_SIZE 0.25f
+#define CELL_SIZE 8.0f
 
 #define PIXEL_MAJOR_PHOTON_CLOSENESS 0.5f
 #define PIXEL_MAJOR_SEARCH_RADIUS 1

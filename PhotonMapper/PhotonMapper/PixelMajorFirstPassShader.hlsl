@@ -405,8 +405,8 @@ inline float3 calculateRandomDirectionInHemisphere(in float3 normal) {
 }
 
 
-inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, out float pdf, in float3 albedo) {
-    wi = SquareToHemisphereCosine(sample);
+inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 samplePt, out float pdf, in float3 albedo) {
+    wi = SquareToHemisphereCosine(samplePt);
     if (wo.z < 0) wi.z *= -1;
     wi = normalize(wi);
     pdf = SameHemisphere(wo, wi) ? INV_PI * AbsCosTheta(wi) : 0;
