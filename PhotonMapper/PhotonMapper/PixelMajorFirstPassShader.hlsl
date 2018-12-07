@@ -548,19 +548,20 @@ void MyMissShader(inout RayPayload payload)
     }
 
 	int depth = payload.extraInfo.y;
-
-	/* master?? 
+ 
     GPhotonPos[uint3(DispatchRaysIndex().xy, depth)] = float4(0, 0, 0, -1);
 
-    
+    /*
 	for (int i = depth; i < MAX_RAY_RECURSION_DEPTH; i++) {
 		;
 	}
 	*/
 
+    /*
 	for (int i = depth; i < MAX_RAY_RECURSION_DEPTH; i++) {
 		GPhotonPos[uint3(DispatchRaysIndex().xy, i)] = float4(0, 0, 0, -1);
 	}
+    */
 
 }
 
