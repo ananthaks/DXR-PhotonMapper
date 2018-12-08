@@ -80,6 +80,9 @@
     <ClInclude Include="PhotonBaseRenderer.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
+    <ClInclude Include="GeometryHelper.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

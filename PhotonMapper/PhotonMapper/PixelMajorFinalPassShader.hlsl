@@ -29,15 +29,19 @@ RWTexture2DArray<float4> GPhotonSortedPos : register(u6);
 RWTexture2DArray<float4> GPhotonSortedCol : register(u7);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
-ByteAddressBuffer Indices : register(t1, space0);
-StructuredBuffer<Vertex> Vertices : register(t2, space0);
+ByteAddressBuffer Indices[] : register(t0, space1);
+StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
-// Constant Buffer views
+// Constant buffers
+ConstantBuffer<SceneBufferDesc> c_bufferIndices[] : register(b0, space1);
+ConstantBuffer<MaterialDesc> c_materials[] : register(b0, space2);
+ConstantBuffer<LightDesc> c_lights[] : register(b0, space3);
+
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
 // Load three 16 bit indices from a byte addressed buffer.
-uint3 Load3x16BitIndices(uint offsetBytes)
+uint3 Load3x16BitIndices(uint geomOffset, uint offsetBytes)
 {
 	uint3 indices;
 
@@ -49,7 +53,7 @@ uint3 Load3x16BitIndices(uint offsetBytes)
 	//  Aligned:     { 0 1 | 2 - }
 	//  Not aligned: { - 0 | 1 2 }
 	const uint dwordAlignedOffset = offsetBytes & ~3;
-	const uint2 four16BitIndices = Indices.Load2(dwordAlignedOffset);
+	const uint2 four16BitIndices = Indices[geomOffset].Load2(dwordAlignedOffset);
 
 	// Aligned: { 0 1 | 2 - } => retrieve first three 16bit indices
 	if (dwordAlignedOffset == offsetBytes)
@@ -571,6 +575,7 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     float3 hitPosition = HitWorldPosition();
+    uint instanceId = InstanceID();
 
     // Get the base index of the triangle's first 16 bit index.
     uint indexSizeInBytes = 2;
@@ -578,14 +583,18 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
     uint baseIndex = PrimitiveIndex() * triangleIndexStride;
 
+    uint geometryOffset = c_bufferIndices[instanceId].vbIndex;
+    uint materialIndex = c_bufferIndices[instanceId].materialIndex;
+    float4x4 normalTransform = c_bufferIndices[instanceId].normalTransformMat;
+
     // Load up 3 16 bit indices for the triangle.
-    const uint3 indices = Load3x16BitIndices(baseIndex);
+    const uint3 indices = Load3x16BitIndices(geometryOffset, baseIndex);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexNormals[3] = { 
-        Vertices[indices[0]].normal, 
-        Vertices[indices[1]].normal, 
-        Vertices[indices[2]].normal 
+        Vertices[geometryOffset][indices[0]].normal, 
+        Vertices[geometryOffset][indices[1]].normal, 
+        Vertices[geometryOffset][indices[2]].normal 
     };
 
     // Compute the triangle's normal.
@@ -593,7 +602,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
-    payload.color = PerformSorted2(hitPosition, triangleNormal);
+    // Transform normal from local space to transformed world space
+    float3 transformedNormal = mul(normalTransform, float4(triangleNormal, 0.0f));
+
+    payload.color = PerformSorted2(hitPosition, transformedNormal);
 
 }
 

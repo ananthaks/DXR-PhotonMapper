@@ -265,14 +265,16 @@ void PhotonMajorRenderer::CreatePrePassRootSignatures()
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+        const UINT numMaterials = UINT(m_scene.m_materials.size());
+        const UINT numLights = UINT(m_scene.m_lights.size());
 
         CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
         ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
-        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
-        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numMaterials, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numLights, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -307,14 +309,16 @@ void PhotonMajorRenderer::CreateFirstPassRootSignatures()
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+        const UINT numMaterials = UINT(m_scene.m_materials.size());
+        const UINT numLights = UINT(m_scene.m_lights.size());
 
         CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
         ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
-        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
-        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numMaterials, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numLights, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -349,14 +353,16 @@ void PhotonMajorRenderer::CreateSecondPassRootSignatures()
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+        const UINT numMaterials = UINT(m_scene.m_materials.size());
+        const UINT numLights = UINT(m_scene.m_lights.size());
 
         CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
         ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
-        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
-        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numMaterials, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numLights, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -391,14 +397,16 @@ void PhotonMajorRenderer::CreateThirdPassRootSignatures()
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+        const UINT numMaterials = UINT(m_scene.m_materials.size());
+        const UINT numLights = UINT(m_scene.m_lights.size());
 
         CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
         ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
-        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
-        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numMaterials, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numLights, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -871,7 +879,7 @@ void PhotonMajorRenderer::CreateDescriptorHeap()
     // n - constant buffer views for lights
     // n - bottom level acceleration structure fallback wrapped pointer UAVs
     // n - top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = NumGBuffers + NumRenderTargets + NumStagingBuffers + UINT(m_scene.m_primitives.size() * 7);
+    descriptorHeapDesc.NumDescriptors = NumGBuffers + NumRenderTargets + NumStagingBuffers + GetNumDescriptorsForScene();
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;

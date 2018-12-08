@@ -149,6 +149,7 @@ protected:
 
         // 3 X 4 transform matrix
         XMMATRIX transformationMatrix;
+        XMMATRIX normalTransform;
 
         std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
 
@@ -198,5 +199,8 @@ protected:
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
     WRAPPED_GPU_POINTER CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
     D3D12_RAYTRACING_GEOMETRY_DESC GetRayTracingGeometryDescriptor(const GeometryBuffer& geoBuffer);
+
+    UINT GetNumDescriptorsForScene();
+
 
 };

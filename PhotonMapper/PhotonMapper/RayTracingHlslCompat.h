@@ -84,6 +84,7 @@ struct SceneBufferDesc
 {
     UINT vbIndex;
     UINT materialIndex;
+    XMMATRIX normalTransformMat;
 };
 
 struct MaterialDesc

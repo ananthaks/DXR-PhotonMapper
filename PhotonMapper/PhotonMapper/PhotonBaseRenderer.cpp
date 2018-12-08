@@ -98,36 +98,43 @@ void PhotonBaseRenderer::GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveT
     {
     case DXRPhotonMapper::PrimitiveType::Cube:
     {
-        vertices = {
+        vertices = 
+        {
+            // Top Face
             { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+            { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+            { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+            { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
 
-        { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+            // Bottom Face
+            { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+            { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+            { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+            { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
 
-        { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+            // Left Face
+            { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
 
-        { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+            // Right Face
+            { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+            { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
 
-        { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+            // Back Face
+            { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+            { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+            { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+            { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
 
-        { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            // Front Face
+            { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
         };
     }
     break;
@@ -135,10 +142,10 @@ void PhotonBaseRenderer::GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveT
     {
         vertices =
         {
-            { XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(0.5f, -0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(0.5f, 0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(-0.5f, 0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0) },
+            { XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(0.5f, -0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(0.5f, 0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+            { XMFLOAT3(-0.5f, 0.5f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0) },
         };
     }
     break;
@@ -220,6 +227,8 @@ void PhotonBaseRenderer::BuildGeometryBuffers()
         XMMATRIX scaleMat = XMMatrixScaling(prim.m_scale.x, prim.m_scale.y, prim.m_scale.z);
 
         geoBuffer.transformationMatrix = scaleMat * rotMat * transMat;
+        geoBuffer.normalTransform = rotMat * scaleMat;
+
 
         m_geometryBuffers.push_back(geoBuffer);
     }
@@ -245,6 +254,7 @@ void PhotonBaseRenderer::BuildGeometrySceneBufferDesc()
         SceneBufferDescHolder sceneBufferDescHolder = {};
         sceneBufferDescHolder.sceneBufferDesc.vbIndex = UINT(i);
         sceneBufferDescHolder.sceneBufferDesc.materialIndex = UINT(m_scene.m_primitives[i].m_materialID);
+        sceneBufferDescHolder.sceneBufferDesc.normalTransformMat = m_geometryBuffers[i].normalTransform;
 
         const size_t bufferSize = (sizeof(SceneBufferDesc) + 255) & ~255;
         CreateUploadBuffer(device, bufferSize, &sceneBufferDescHolder.sceneBufferDescRes.resource);
@@ -448,7 +458,7 @@ void PhotonBaseRenderer::BuildGeometryAccelerationStructures()
         {
             D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC instanceDesc = {};
             XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), geoBuffer.transformationMatrix);
-            instanceDesc.InstanceMask = 0xFF;
+            instanceDesc.InstanceMask = 1;
             instanceDesc.InstanceID = instanceId++;
             UINT numBufferElements = static_cast<UINT>(geoBuffer.bottomLevelAccStructPreBuildInfo.ResultDataMaxSizeInBytes) / sizeof(UINT32);
             instanceDesc.AccelerationStructure = CreateFallbackWrappedPointer(geoBuffer.bottomLevelAccStructure.Get(), numBufferElements);
@@ -463,7 +473,7 @@ void PhotonBaseRenderer::BuildGeometryAccelerationStructures()
         {
             D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
             XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), geoBuffer.transformationMatrix);
-            instanceDesc.InstanceMask = 0xFF;
+            instanceDesc.InstanceMask = 1;
             instanceDesc.InstanceID = instanceId++;
             instanceDesc.AccelerationStructure = geoBuffer.bottomLevelAccStructure->GetGPUVirtualAddress();
             dxrInstanceDescriptions.push_back(instanceDesc);
@@ -601,4 +611,25 @@ D3D12_RAYTRACING_GEOMETRY_DESC PhotonBaseRenderer::GetRayTracingGeometryDescript
     geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
     return geometryDesc;
+}
+
+UINT PhotonBaseRenderer::GetNumDescriptorsForScene()
+{
+    // Allocate a heap for descriptors:
+    // n - vertex SRVs
+    // n - index SRVs
+    // n - constant buffer views for scene buffer info
+    // n - constant buffer views for materials
+    // n - constant buffer views for lights
+    // n - bottom level acceleration structure fallback wrapped pointer UAVs
+    // n - top level acceleration structure fallback wrapped pointer UAVs
+    const UINT numVertexSRVDescs = UINT(m_scene.m_primitives.size());
+    const UINT numIndexSRVDescs = UINT(m_scene.m_primitives.size());
+    const UINT numSceneCBVDescs = UINT(m_scene.m_primitives.size());
+    const UINT numMaterialCBVDescs = UINT(m_scene.m_materials.size());
+    const UINT numLightCBVDescs = UINT(m_scene.m_lights.size());
+    const UINT numBLASDescs = UINT(m_scene.m_primitives.size());
+    const UINT numTLASDescs = UINT(m_scene.m_primitives.size());
+
+    return (numVertexSRVDescs + numIndexSRVDescs + numSceneCBVDescs + numMaterialCBVDescs + numLightCBVDescs + numBLASDescs + numTLASDescs);
 }

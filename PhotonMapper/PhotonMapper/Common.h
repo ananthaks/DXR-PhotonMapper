@@ -1,17 +1,5 @@
 #pragma once
 
-namespace GlobalRootSignatureParams 
-{
-    enum Value 
-    {
-        OutputViewSlot = 0,
-        AccelerationStructureSlot,
-        SceneConstantSlot,
-        VertexBuffersSlot,
-        Count 
-    };
-}
-
 namespace GlobalRootSignatureParamsWithPrimitives 
 {
     enum Value 

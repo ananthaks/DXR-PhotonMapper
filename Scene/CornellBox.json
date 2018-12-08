@@ -15,7 +15,7 @@
       "material": "matteYellow",
       "transform": {
         "translate": [ 0, 0, 0 ],
-        "rotate": [ 0, -30, 0 ],
+        "rotate": [ 0, 0, 0 ],
         "scale": [ 1, 1, 1 ]
       }
     },
@@ -25,7 +25,7 @@
       "material": "matteWhite",
       "transform": {
         "translate": [ 0, -4, 0 ],
-        "rotate": [ 90, 0, 0 ],
+        "rotate": [ 80, 0, 0 ],
         "scale": [ 10, 10, 1 ]
       }
     },
@@ -113,6 +113,18 @@
     {
       "type": "MatteMaterial",
       "name": "matteYellow",
+      "albedo": [ 1.0, 1.0, 0.0 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteYellow2",
+      "albedo": [ 1.0, 1.0, 0.0 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteYellow3",
       "albedo": [ 1.0, 1.0, 0.0 ],
       "sigma": 0
     }
