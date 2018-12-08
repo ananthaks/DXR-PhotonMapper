@@ -219,7 +219,10 @@ void PhotonMajorRenderer::CreateDeviceDependentResources()
     // Build geometry to be used in the sample.
     BuildGeometryBuffers();
 
+    // Build supporting contant buffer views
     BuildGeometrySceneBufferDesc();
+    BuildMaterialBuffer();
+    BuildLightBuffer();
     //BuildGeometry();
 
     // Build raytracing acceleration structures from the generated geometry.
@@ -267,11 +270,13 @@ void PhotonMajorRenderer::CreatePrePassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
-        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -279,6 +284,8 @@ void PhotonMajorRenderer::CreatePrePassRootSignatures()
         rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::MaterialSlot].InitAsDescriptorTable(1, &ranges[4]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::LightSlot].InitAsDescriptorTable(1, &ranges[5]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -305,11 +312,13 @@ void PhotonMajorRenderer::CreateFirstPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
-        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -317,6 +326,8 @@ void PhotonMajorRenderer::CreateFirstPassRootSignatures()
         rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::MaterialSlot].InitAsDescriptorTable(1, &ranges[4]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::LightSlot].InitAsDescriptorTable(1, &ranges[5]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -343,11 +354,13 @@ void PhotonMajorRenderer::CreateSecondPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
-        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // constant buffer views
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -355,6 +368,8 @@ void PhotonMajorRenderer::CreateSecondPassRootSignatures()
         rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::MaterialSlot].InitAsDescriptorTable(1, &ranges[4]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::LightSlot].InitAsDescriptorTable(1, &ranges[5]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -381,11 +396,13 @@ void PhotonMajorRenderer::CreateThirdPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[6]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
-        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 1);  // CBV - scene buffer array
+        ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 2);  // CBV - material buffer array
+        ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // CBV - light buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
         rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
@@ -393,6 +410,8 @@ void PhotonMajorRenderer::CreateThirdPassRootSignatures()
         rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::MaterialSlot].InitAsDescriptorTable(1, &ranges[4]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::LightSlot].InitAsDescriptorTable(1, &ranges[5]);
         rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -852,9 +871,11 @@ void PhotonMajorRenderer::CreateDescriptorHeap()
     // n - vertex SRVs
     // n - index SRVs
     // n - constant buffer views for scene buffer info
+    // n - constant buffer views for materials
+    // n - constant buffer views for lights
     // n - bottom level acceleration structure fallback wrapped pointer UAVs
     // n - top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = NumGBuffers + NumRenderTargets + NumStagingBuffers + UINT(m_scene.m_primitives.size() * 5);
+    descriptorHeapDesc.NumDescriptors = NumGBuffers + NumRenderTargets + NumStagingBuffers + UINT(m_scene.m_primitives.size() * 7);
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -1115,7 +1136,7 @@ void PhotonMajorRenderer::BuildGeometryBuffers()
         XMMATRIX scaleMat = XMMatrixScaling(prim.m_scale.x, prim.m_scale.y, prim.m_scale.z);
 
         geoBuffer.transformationMatrix = scaleMat * rotMat * transMat;
-        
+
         m_geometryBuffers.push_back(geoBuffer);
     }
 
@@ -1140,7 +1161,7 @@ void PhotonMajorRenderer::BuildGeometrySceneBufferDesc()
         SceneBufferDescHolder sceneBufferDescHolder = {};
         sceneBufferDescHolder.sceneBufferDesc.vbIndex = UINT(i);
 
-        const size_t bufferSize = (sizeof(SceneBufferDesc) + 255 ) & ~255;
+        const size_t bufferSize = (sizeof(SceneBufferDesc) + 255) & ~255;
         CreateUploadBuffer(device, bufferSize, &sceneBufferDescHolder.sceneBufferDescRes.resource);
 
         UINT descriptorIndex = AllocateDescriptor(&sceneBufferDescHolder.sceneBufferDescRes.cpuDescriptorHandle);
@@ -1159,6 +1180,69 @@ void PhotonMajorRenderer::BuildGeometrySceneBufferDesc()
         sceneBufferDescHolder.sceneBufferDescRes.resource->Unmap(0, &readRange);
 
         m_sceneBufferDescriptors.push_back(sceneBufferDescHolder);
+    }
+}
+
+void PhotonMajorRenderer::BuildMaterialBuffer()
+{
+    auto device = m_deviceResources->GetD3DDevice();
+    for (size_t i = 0; i < m_scene.m_materials.size(); ++i)
+    {
+        MaterialDescHolder materialDescHolder = {};
+        materialDescHolder.materialDesc.materialID = UINT(i);
+        materialDescHolder.materialDesc.albedo = m_scene.m_materials[i].m_baseMaterials[0].m_albedo;
+
+        const size_t bufferSize = (sizeof(MaterialDesc) + 255) & ~255;
+        CreateUploadBuffer(device, bufferSize, &materialDescHolder.materialDescRes.resource);
+
+        UINT descriptorIndex = AllocateDescriptor(&materialDescHolder.materialDescRes.cpuDescriptorHandle);
+        materialDescHolder.materialDescRes.gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, m_descriptorSize);
+
+        // Create a CBV descriptor
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = materialDescHolder.materialDescRes.resource->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = bufferSize;
+        device->CreateConstantBufferView(&cbvDesc, materialDescHolder.materialDescRes.cpuDescriptorHandle);
+
+        CD3DX12_RANGE readRange(0, 0);
+        SceneBufferDesc *mappedConstantData;
+        ThrowIfFailed(materialDescHolder.materialDescRes.resource->Map(0, &readRange, reinterpret_cast<void**>(&mappedConstantData)));
+        memcpy(mappedConstantData, &materialDescHolder.materialDesc, sizeof(MaterialDesc));
+        materialDescHolder.materialDescRes.resource->Unmap(0, &readRange);
+
+        m_materialDescriptors.push_back(materialDescHolder);
+    }
+}
+
+void PhotonMajorRenderer::BuildLightBuffer()
+{
+    auto device = m_deviceResources->GetD3DDevice();
+    for (size_t i = 0; i < m_scene.m_lights.size(); ++i)
+    {
+        LightDescHolder lightDescHolder = {};
+        lightDescHolder.lightDesc.shapeID = static_cast<UINT>(m_scene.m_lights[i].m_lightType);
+        lightDescHolder.lightDesc.lightIntensity = m_scene.m_lights[i].m_lightIntensity;
+        lightDescHolder.lightDesc.lightColor = m_scene.m_lights[i].m_lightColor;
+
+        const size_t bufferSize = (sizeof(LightDesc) + 255) & ~255;
+        CreateUploadBuffer(device, bufferSize, &lightDescHolder.lightDescRes.resource);
+
+        UINT descriptorIndex = AllocateDescriptor(&lightDescHolder.lightDescRes.cpuDescriptorHandle);
+        lightDescHolder.lightDescRes.gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, m_descriptorSize);
+
+        // Create a CBV descriptor
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = lightDescHolder.lightDescRes.resource->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = bufferSize;
+        device->CreateConstantBufferView(&cbvDesc, lightDescHolder.lightDescRes.cpuDescriptorHandle);
+
+        CD3DX12_RANGE readRange(0, 0);
+        SceneBufferDesc *mappedConstantData;
+        ThrowIfFailed(lightDescHolder.lightDescRes.resource->Map(0, &readRange, reinterpret_cast<void**>(&mappedConstantData)));
+        memcpy(mappedConstantData, &lightDescHolder.lightDesc, sizeof(LightDesc));
+        lightDescHolder.lightDescRes.resource->Unmap(0, &readRange);
+
+        m_lightDescriptors.push_back(lightDescHolder);
     }
 }
 
@@ -2012,7 +2096,9 @@ void PhotonMajorRenderer::DoPrePassPhotonMapping()
         // Set index and successive vertex buffer decriptor tables
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot, m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::MaterialSlot, m_materialDescriptors[0].materialDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::LightSlot, m_lightDescriptors[0].lightDescRes.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2069,6 +2155,8 @@ void PhotonMajorRenderer::DoFirstPassPhotonMapping()
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot, m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::MaterialSlot, m_materialDescriptors[0].materialDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::LightSlot, m_lightDescriptors[0].lightDescRes.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2124,7 +2212,9 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
         // Set index and successive vertex buffer decriptor tables
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot, m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::MaterialSlot, m_materialDescriptors[0].materialDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::LightSlot, m_lightDescriptors[0].lightDescRes.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2180,7 +2270,9 @@ void PhotonMajorRenderer::DoThirdPassPhotonMapping()
         // Set index and successive vertex buffer decriptor tables
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot, m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::MaterialSlot, m_materialDescriptors[0].materialDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::LightSlot, m_lightDescriptors[0].lightDescRes.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 

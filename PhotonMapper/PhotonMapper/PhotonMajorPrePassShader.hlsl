@@ -19,16 +19,15 @@ RWTexture2DArray<float4> GPhotonNorm : register(u7);
 RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
-
-ByteAddressBuffer Indices : register(t1, space0);
-StructuredBuffer<Vertex> Vertices : register(t2, space0);
-
-// Constant Buffer views
-//ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
-//ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
+ByteAddressBuffer Indices[] : register(t1, space0);
+StructuredBuffer<Vertex> Vertices[] : register(t2, space0);
 
 
-ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
+// Constant buffers
+ConstantBuffer<SceneBufferDesc> c_bufferIndices[] : register(b0, space1);
+ConstantBuffer<MaterialDesc> c_materials[] : register(b0, space2);
+ConstantBuffer<LightDesc> c_lights[] : register(b0, space3);
+
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
@@ -47,7 +46,7 @@ struct RayPayload
 void MyRaygenShader()
 {
     uint2 index = DispatchRaysIndex().xy;
-    
+
     StagedRenderTarget_R[index] = 0;
     StagedRenderTarget_G[index] = 0;
     StagedRenderTarget_B[index] = 0;
@@ -58,13 +57,13 @@ void MyRaygenShader()
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
-    
+
 }
 
 [shader("miss")]
 void MyMissShader(inout RayPayload payload)
 {
-    
+
 }
 
 #endif // PHOTON_MAJOR_PRE_PASS

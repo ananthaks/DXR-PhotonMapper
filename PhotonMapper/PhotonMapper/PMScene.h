@@ -54,7 +54,7 @@ namespace DXRPhotonMapper
     {
         std::string m_name;
         MaterialFlag m_materialFlags;
-        std::vector<BaseMat> m_materials;
+        std::vector<BaseMat> m_baseMaterials;
     };
 
     enum class PrimitiveType
@@ -80,6 +80,7 @@ namespace DXRPhotonMapper
         AreaLight,
         SpotLight,
         Error,
+        Count
     };
 
     struct AreaLight

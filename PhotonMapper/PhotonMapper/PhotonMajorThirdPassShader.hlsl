@@ -22,12 +22,11 @@ RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices[] : register(t0, space1);
 StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
-// Constant Buffer views
-//ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
-//ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
+// Constant buffers
+ConstantBuffer<SceneBufferDesc> c_bufferIndices[] : register(b0, space1);
+ConstantBuffer<MaterialDesc> c_materials[] : register(b0, space2);
+ConstantBuffer<LightDesc> c_lights[] : register(b0, space3);
 
-
-ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 

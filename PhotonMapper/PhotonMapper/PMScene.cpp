@@ -279,7 +279,7 @@ namespace DXRPhotonMapper
                 diffuseMat.m_albedo = { float(albedo[0]), float(albedo[1]), float(albedo[2]) };
                 diffuseMat.m_matIdentifier = MaterialFlag::BSDF_DIFFUSE;
 
-                material.m_materials.push_back(diffuseMat);
+                material.m_baseMaterials.push_back(diffuseMat);
 
                 materials.push_back(material);
             }

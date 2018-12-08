@@ -22,11 +22,11 @@ RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices[] : register(t0, space1);
 StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
-// Constant Buffer views
-//ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
-//ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
+// Constant buffers
+ConstantBuffer<SceneBufferDesc> c_bufferIndices[] : register(b0, space1);
+ConstantBuffer<MaterialDesc> c_materials[] : register(b0, space2);
+ConstantBuffer<LightDesc> c_lights[] : register(b0, space3);
 
-ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
@@ -43,9 +43,9 @@ uint3 Load3x16BitIndices(uint geomOffset, uint offsetBytes)
     // based on first index's offsetBytes being aligned at the 4 byte boundary or not:
     //  Aligned:     { 0 1 | 2 - }
     //  Not aligned: { - 0 | 1 2 }
-    const uint dwordAlignedOffset = offsetBytes & ~3;    
+    const uint dwordAlignedOffset = offsetBytes & ~3;
     const uint2 four16BitIndices = Indices[geomOffset].Load2(dwordAlignedOffset);
- 
+
     // Aligned: { 0 1 | 2 - } => retrieve first three 16bit indices
     if (dwordAlignedOffset == offsetBytes)
     {
@@ -214,7 +214,9 @@ inline bool SameHemisphere(in float3 w, in float3 wp) {
     return w.z * wp.z > 0;
 }
 
-inline float AbsCosTheta(in float3 w) { return abs(w.z); }
+inline float AbsCosTheta(in float3 w) {
+    return abs(w.z);
+}
 
 inline float AbsDot(in float3 a, in float3 b)
 {
@@ -285,8 +287,8 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
     ray.TMin = 0.001;
     ray.TMax = 1.001;
 
-    RayPayload shadowPayload = 
-    { 
+    RayPayload shadowPayload =
+    {
         float4(0, 0, 0, 0), // Hit Color
         float4(0, 0, 0, 0), // Hit Location
         float4(-1, 0, 0, 1), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
@@ -310,17 +312,17 @@ inline void VisualizePhoton(RayPayload payload, float2 screenDims)
         RenderTarget[pixelPos] = payload.color;
         //GPhotonPos[pixelPos] = payload.color;
     }
-    
+
 }
 
 [shader("raygeneration")]
 void MyRaygenShader()
 {
     float2 samplePoint = DispatchRaysIndex().xy;
-    
+
     uint width, height;
     RenderTarget.GetDimensions(width, height);
-    
+
     float2 screenDims = float2(width, height);
 
     // Set seed for PRNG
@@ -339,8 +341,8 @@ void MyRaygenShader()
     ray.TMax = 10000.0;
 
     // Initialize the payload
-    RayPayload payload = 
-    { 
+    RayPayload payload =
+    {
         g_sceneCB.lightDiffuseColor, // Photon's starting color
         float4(0, 0, 0, 0), // Hit Location
         float4(1, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
@@ -401,7 +403,7 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 sample, ou
 
 inline float3 WorldToColor(float3 worldPosition)
 {
-	return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
+    return float3(0.5f, 0.5f, 0.5f) + (worldPosition / (2.0f * MAX_SCENE_SIZE));
 }
 
 
@@ -409,13 +411,13 @@ inline float3 WorldToColor(float3 worldPosition)
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
     int isShadow = payload.extraInfo.x;
-    if (isShadow == -1) 
+    if (isShadow == -1)
     {
         return;
     }
 
     int depth = payload.extraInfo.y;
-    if (depth >= MAX_RAY_RECURSION_DEPTH) 
+    if (depth >= MAX_RAY_RECURSION_DEPTH)
     {
         return;
     }
@@ -429,16 +431,16 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
     uint baseIndex = PrimitiveIndex() * triangleIndexStride;
 
-    uint geometryOffset = g_geomIndex[instanceId].vbIndex;
+    uint geometryOffset = c_bufferIndices[instanceId].vbIndex;
 
     // Load up 3 16 bit indices for the triangle.
     const uint3 indices = Load3x16BitIndices(geometryOffset, baseIndex);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
-    float3 vertexNormals[3] = { 
-        Vertices[geometryOffset][indices[0]].normal, 
-        Vertices[geometryOffset][indices[1]].normal, 
-        Vertices[geometryOffset][indices[2]].normal 
+    float3 vertexNormals[3] = {
+        Vertices[geometryOffset][indices[0]].normal,
+        Vertices[geometryOffset][indices[1]].normal,
+        Vertices[geometryOffset][indices[2]].normal
     };
 
     // Compute the triangle's normal.
@@ -447,10 +449,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
-    float3 vertexColors[3] = { 
-        Vertices[geometryOffset][indices[0]].color, 
-        Vertices[geometryOffset][indices[1]].color, 
-        Vertices[geometryOffset][indices[2]].color 
+    float3 vertexColors[3] = {
+        Vertices[geometryOffset][indices[0]].color,
+        Vertices[geometryOffset][indices[1]].color,
+        Vertices[geometryOffset][indices[2]].color
     };
 
     // Compute the triangle's normal.
@@ -461,7 +463,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     // TODO We don't have UVs
     // Calculate tangent and bitangent of triangle using its points
-    
+
     float3 tangent = normalize(Vertices[geometryOffset][indices[0]].position - hitPosition);
     float3 bitangent = normalize(cross(tangent, triangleNormal));
 
@@ -479,8 +481,8 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
     float3 wiW = normalize(mul(wi, tangentToWorld));
-    
-    if (pdf < EPSILON) 
+
+    if (pdf < EPSILON)
     {
         return;
     }
@@ -498,7 +500,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // Store photon
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
     GPhotonPos[g_index] = float4(hitPosition, 1);
-	GPhotonColor[g_index] = payload.color;
+    GPhotonColor[g_index] = payload.color;
     GPhotonNorm[g_index] = float4(triangleNormal, 1.0);
     GPhotonTangent[g_index] = float4(tangent, 1.0);
 
@@ -524,14 +526,14 @@ void MyMissShader(inout RayPayload payload)
 {
     int isShadow = payload.extraInfo.x;
 
-    if (isShadow == -1) 
+    if (isShadow == -1)
     {
         float4 background = float4(1.0f, 1.0f, 1.0f, 1.0f);
         payload.color = background;
         payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
-    
+
     int depth = payload.extraInfo.y;
     uint3 g_index = uint3(DispatchRaysIndex().xy, depth);
     GPhotonPos[g_index] = float4(0.0f, 0.0f, 0.0f, 0.0f);

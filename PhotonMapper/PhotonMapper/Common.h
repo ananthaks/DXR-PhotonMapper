@@ -22,6 +22,8 @@ namespace GlobalRootSignatureParamsWithPrimitives
         IndexBuffersSlot,
         VertexBuffersSlot,
         GeomIndexSlot,
+        MaterialSlot,
+        LightSlot,
         Count 
     };
 }

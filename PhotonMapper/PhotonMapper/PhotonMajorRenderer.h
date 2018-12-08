@@ -60,7 +60,7 @@ private:
     AlignedSceneConstantBuffer*  m_mappedConstantData;
     ComPtr<ID3D12Resource>       m_perFrameConstants;
 
-    
+
     // Raytracing Fallback Layer (FL) attributes
     ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
     ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
@@ -164,6 +164,20 @@ private:
     };
     std::vector<SceneBufferDescHolder> m_sceneBufferDescriptors;
 
+    struct MaterialDescHolder
+    {
+        MaterialDesc materialDesc;
+        D3DBuffer materialDescRes;
+    };
+    std::vector<MaterialDescHolder> m_materialDescriptors;
+
+    struct LightDescHolder
+    {
+        LightDesc lightDesc;
+        D3DBuffer lightDescRes;
+    };
+    std::vector<LightDescHolder> m_lightDescriptors;
+
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
 
@@ -222,7 +236,7 @@ private:
     void DoSecondPassPhotonMapping();
     void DoThirdPassPhotonMapping();
 
-    
+
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -254,6 +268,8 @@ private:
     void GetIndicesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Index>& indices);
     void BuildGeometryBuffers();
     void BuildGeometrySceneBufferDesc();
+    void BuildMaterialBuffer();
+    void BuildLightBuffer();
     void BuildGeometryAccelerationStructures();
 
     void BuildAccelerationStructures();

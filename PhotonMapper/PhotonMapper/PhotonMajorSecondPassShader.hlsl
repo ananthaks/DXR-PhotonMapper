@@ -22,14 +22,11 @@ RaytracingAccelerationStructure Scene : register(t0, space0);
 ByteAddressBuffer Indices[] : register(t0, space1);
 StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
+// Constant buffers
+ConstantBuffer<SceneBufferDesc> c_bufferIndices[] : register(b0, space1);
+ConstantBuffer<MaterialDesc> c_materials[] : register(b0, space2);
+ConstantBuffer<LightDesc> c_lights[] : register(b0, space3);
 
-
-// Constant Buffer views
-//ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
-//ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
-
-
-ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
@@ -58,14 +55,14 @@ inline void GetPixelPosition(float3 rayHitPosition, float2 screenDim, out uint2 
 }
 
 
- void TraceRayToCamera(float4 hitPosition, float2 screenDims, out bool didHit, out uint2 pixelHit)
+void TraceRayToCamera(float4 hitPosition, float2 screenDims, out bool didHit, out uint2 pixelHit)
 {
     // Find the Screen Space Coord for the photon
     uint2 pixelPos = uint2(500, 500);
     bool inRange;
     GetPixelPosition(hitPosition, screenDims, pixelPos, inRange);
 
-    if (!inRange) 
+    if (!inRange)
     {
         didHit = false;
         pixelHit = uint2(0, 0);
@@ -107,12 +104,12 @@ inline void VisualizePhoton(float4 hitPosition, float4 photonColor, float4 photo
         // Write the raytraced color to the output texture.
 
         uint3 scaledColor = photonColor.xyz * 255.f;
-		uint4 newColorValue = float4(scaledColor, 1);
-		
+        uint4 newColorValue = float4(scaledColor, 1);
+
         InterlockedAdd(StagedRenderTarget_R[centerPixelPos], newColorValue[0]);
-		InterlockedAdd(StagedRenderTarget_G[centerPixelPos], newColorValue[1]);
-		InterlockedAdd(StagedRenderTarget_B[centerPixelPos], newColorValue[2]);
-		InterlockedAdd(StagedRenderTarget_A[centerPixelPos], newColorValue[3]);
+        InterlockedAdd(StagedRenderTarget_G[centerPixelPos], newColorValue[1]);
+        InterlockedAdd(StagedRenderTarget_B[centerPixelPos], newColorValue[2]);
+        InterlockedAdd(StagedRenderTarget_A[centerPixelPos], newColorValue[3]);
     }
 
     /*
@@ -199,7 +196,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 void MyMissShader(inout RayPayload payload)
 {
     int isShadow = payload.extraInfo.x;
-    if (isShadow == -1) 
+    if (isShadow == -1)
     {
         payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
