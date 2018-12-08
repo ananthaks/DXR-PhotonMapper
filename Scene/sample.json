@@ -12,7 +12,7 @@
     {
       "shape": "Cube",
       "name": "cube1",
-      "material": "cloth",
+      "material": "matteWhite",
       "transform": {
         "translate": [ 5, 0, 0 ],
         "rotate": [ 0, -30, 0 ],
@@ -22,7 +22,7 @@
     {
       "shape": "Cube",
       "name": "cube2",
-      "material": "cloth",
+      "material": "matteRed",
       "transform": {
         "translate": [ -5, 0, 0 ],
         "rotate": [ 0, -30, 0 ],
@@ -32,7 +32,7 @@
     {
       "shape": "SquarePlane",
       "name": "floor",
-      "material": "cloth",
+      "material": "matteWhite",
       "transform": {
         "translate": [ 0, -3, 0 ],
         "rotate": [ 90, 0, 0 ],
@@ -65,6 +65,12 @@
       "type": "MatteMaterial",
       "name": "matteWhite",
       "albedo": [ 0.85, 0.81, 0.78 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteRed",
+      "albedo": [ 1.0, 0.0, 0.0 ],
       "sigma": 0
     }
   ]

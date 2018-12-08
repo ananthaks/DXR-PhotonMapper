@@ -83,6 +83,7 @@ struct Vertex
 struct SceneBufferDesc
 {
     UINT vbIndex;
+    UINT materialIndex;
 };
 
 struct MaterialDesc

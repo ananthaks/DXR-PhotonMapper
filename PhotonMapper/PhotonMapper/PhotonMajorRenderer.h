@@ -178,16 +178,8 @@ private:
     };
     std::vector<LightDescHolder> m_lightDescriptors;
 
-    D3DBuffer m_indexBuffer;
-    D3DBuffer m_vertexBuffer;
-
-    // Acceleration structure
-    ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
+    // Acceleration structure for the entire scene
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
-
-    // Primitive Acceeleration structures
-    ComPtr<ID3D12Resource> m_geoTLAS;
-
 
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
@@ -258,12 +250,13 @@ private:
     void CreateThirdPassPhotonPipelineStateObject();
 
     void CreateDescriptorHeap();
+
+    // Construction of UAVs for storage of Photons
     void CreateRaytracingOutputResource();
     void CreateStagingRenderTargetResource();
     void CreateGBuffers();
 
-    void BuildGeometry();
-
+    // Construction of Scene information
     void GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Vertex>& vertices);
     void GetIndicesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Index>& indices);
     void BuildGeometryBuffers();
@@ -272,8 +265,7 @@ private:
     void BuildLightBuffer();
     void BuildGeometryAccelerationStructures();
 
-    void BuildAccelerationStructures();
-
+    // Construction of Shader tables
     void BuildPrePassShaderTables();
     void BuildFirstPassShaderTables();
     void BuildSecondPassShaderTables();

@@ -432,6 +432,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint baseIndex = PrimitiveIndex() * triangleIndexStride;
 
     uint geometryOffset = c_bufferIndices[instanceId].vbIndex;
+    uint materialIndex = c_bufferIndices[instanceId].materialIndex;
 
     // Load up 3 16 bit indices for the triangle.
     const uint3 indices = Load3x16BitIndices(geometryOffset, baseIndex);
@@ -458,7 +459,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // Compute the triangle's normal.
     // This is redundant and done for illustration purposes 
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
-    float3 triangleColor = HitAttribute(vertexColors, attr);
+    float3 triangleColor = c_materials[materialIndex].albedo;//HitAttribute(vertexColors, attr);
 
 
     // TODO We don't have UVs
