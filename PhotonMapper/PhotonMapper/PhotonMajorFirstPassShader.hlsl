@@ -19,15 +19,22 @@ RWTexture2DArray<float4> GPhotonNorm : register(u7);
 RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
-ByteAddressBuffer Indices : register(t1, space0);
-StructuredBuffer<Vertex> Vertices : register(t2, space0);
+ByteAddressBuffer Indices[] : register(t0, space1);
+StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
 // Constant Buffer views
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
+/*
+ConstantBuffer<UINT> g_geomIndex : register(b0);
+ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b1);
+ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b2);
+*/
+
+
 // Load three 16 bit indices from a byte addressed buffer.
-uint3 Load3x16BitIndices(uint offsetBytes)
+uint3 Load3x16BitIndices(uint geomOffset, uint offsetBytes)
 {
     uint3 indices;
 
@@ -39,7 +46,7 @@ uint3 Load3x16BitIndices(uint offsetBytes)
     //  Aligned:     { 0 1 | 2 - }
     //  Not aligned: { - 0 | 1 2 }
     const uint dwordAlignedOffset = offsetBytes & ~3;    
-    const uint2 four16BitIndices = Indices.Load2(dwordAlignedOffset);
+    const uint2 four16BitIndices = Indices[geomOffset].Load2(dwordAlignedOffset);
  
     // Aligned: { 0 1 | 2 - } => retrieve first three 16bit indices
     if (dwordAlignedOffset == offsetBytes)
@@ -423,14 +430,16 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
     uint baseIndex = PrimitiveIndex() * triangleIndexStride;
 
+    uint geometryOffset = 0;
+
     // Load up 3 16 bit indices for the triangle.
-    const uint3 indices = Load3x16BitIndices(baseIndex);
+    const uint3 indices = Load3x16BitIndices(0, baseIndex);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexNormals[3] = { 
-        Vertices[indices[0]].normal, 
-        Vertices[indices[1]].normal, 
-        Vertices[indices[2]].normal 
+        Vertices[geometryOffset][indices[0]].normal, 
+        Vertices[geometryOffset][indices[1]].normal, 
+        Vertices[geometryOffset][indices[2]].normal 
     };
 
     // Compute the triangle's normal.
@@ -440,9 +449,9 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexColors[3] = { 
-        Vertices[indices[0]].color, 
-        Vertices[indices[1]].color, 
-        Vertices[indices[2]].color 
+        Vertices[geometryOffset][indices[0]].color, 
+        Vertices[geometryOffset][indices[1]].color, 
+        Vertices[geometryOffset][indices[2]].color 
     };
 
     // Compute the triangle's normal.
@@ -454,7 +463,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // TODO We don't have UVs
     // Calculate tangent and bitangent of triangle using its points
     
-    float3 tangent = normalize(Vertices[indices[0]].position - hitPosition);
+    float3 tangent = normalize(Vertices[geometryOffset][indices[0]].position - hitPosition);
     float3 bitangent = normalize(cross(tangent, triangleNormal));
 
     // TODO make sure these are columns

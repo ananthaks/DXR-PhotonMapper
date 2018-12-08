@@ -147,7 +147,7 @@ void PhotonMajorRenderer::InitializeScene()
         XMFLOAT4 lightDiffuseColor;
 
         //lightPosition = XMFLOAT4(0.0f, 1.8f, -3.0f, 0.0f);
-        lightPosition = XMFLOAT4(3.0f, 0.0f, 3.0f, 0.0f);
+        lightPosition = XMFLOAT4(3.0f, 0.0f, -3.0f, 0.0f);
         m_sceneCB[frameIndex].lightPosition = XMLoadFloat4(&lightPosition);
 
         lightAmbientColor = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
@@ -217,10 +217,12 @@ void PhotonMajorRenderer::CreateDeviceDependentResources()
     CreateDescriptorHeap();
 
     // Build geometry to be used in the sample.
-    BuildGeometry();
+    BuildGeometryBuffers();
+    //BuildGeometry();
 
     // Build raytracing acceleration structures from the generated geometry.
-    BuildAccelerationStructures();
+    BuildGeometryAccelerationStructures();
+    //BuildAccelerationStructures();
 
     // Create constant buffers for the geometry and the scene.
     CreateConstantBuffers();
@@ -261,15 +263,19 @@ void PhotonMajorRenderer::CreatePrePassRootSignatures()
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
-        // TODO: Remove the unnecessary UAV (RenderTarget) from first pass
-        CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+        const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+
+        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
-        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
+        ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
         rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
         rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
         rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -294,18 +300,21 @@ void PhotonMajorRenderer::CreateFirstPassRootSignatures()
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
-        // TODO: Remove the unnecessary UAV (RenderTarget) from first pass
-        CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+        const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+
+        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
-        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
+        ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 
         rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
 
         rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-
+        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
         rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -330,17 +339,20 @@ void PhotonMajorRenderer::CreateSecondPassRootSignatures()
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
-        CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+        const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+
+        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
-        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
+        ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 
         rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-
         rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-
+        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
         rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -365,17 +377,20 @@ void PhotonMajorRenderer::CreateThirdPassRootSignatures()
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
     {
-        CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+        const UINT numPrimitives = UINT(m_scene.m_primitives.size());
+
+        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
-        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+        ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
+        ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
 
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 
         rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-
         rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-
+        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
         rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
@@ -1073,7 +1088,7 @@ void PhotonMajorRenderer::BuildGeometryBuffers()
     {
         DXRPhotonMapper::Primitive prim = m_scene.m_primitives[i];
 
-        GeometryBuffer primBuffer = {};
+        GeometryBuffer geoBuffer = {};
 
         std::vector<Vertex> vertices;
         GetVerticesForPrimitiveType(prim.m_primitiveType, vertices);
@@ -1081,17 +1096,28 @@ void PhotonMajorRenderer::BuildGeometryBuffers()
         std::vector<Index> indices;
         GetIndicesForPrimitiveType(prim.m_primitiveType, indices);
 
-        AllocateUploadBuffer(device, indices.data(), indices.size() * sizeof(Index), &primBuffer.indexBuffer.resource);
-        AllocateUploadBuffer(device, vertices.data(), vertices.size() * sizeof(Vertex), &primBuffer.vertexBuffer.resource);
+        AllocateUploadBuffer(device, indices.data(), indices.size() * sizeof(Index), &geoBuffer.indexBuffer.resource);
+        AllocateUploadBuffer(device, vertices.data(), vertices.size() * sizeof(Vertex), &geoBuffer.vertexBuffer.resource);
 
-        // Vertex buffer is passed to the shader along with index buffer as a descriptor table.
-        // Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
-        UINT descriptorIndexIB = CreateBufferSRV(&primBuffer.indexBuffer, sizeof(indices.size() * sizeof(Index)) / 4, 0);
-        UINT descriptorIndexVB = CreateBufferSRV(&primBuffer.vertexBuffer, vertices.size(), sizeof(vertices[0]));
+        geoBuffer.indexNumElements = indices.size() * sizeof(Index) / 4;
+        geoBuffer.indexElementSize = 0; // Since we are going to create a raw buffer
 
-        ThrowIfFalse(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
+        geoBuffer.vertexNumElements = vertices.size();
+        geoBuffer.vertexElementSize = sizeof(vertices[0]);
 
-        m_geometryBuffers.push_back(primBuffer);
+        m_geometryBuffers.push_back(geoBuffer);
+    }
+
+    // Create SRVs for Index Buffers
+    for (auto& geoBuffer : m_geometryBuffers)
+    {
+        UINT descriptorIndexIB = CreateBufferSRV(&geoBuffer.indexBuffer, geoBuffer.indexNumElements, geoBuffer.indexElementSize);
+    }
+
+    // Create SRVs for Vertex Buffers
+    for (auto& geoBuffer : m_geometryBuffers)
+    {
+        UINT descriptorIndexVB = CreateBufferSRV(&geoBuffer.vertexBuffer, geoBuffer.vertexNumElements, geoBuffer.vertexElementSize);
     }
 }
 
@@ -1111,8 +1137,8 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
         // 1a. Get the geometry descriptors
         D3D12_RAYTRACING_GEOMETRY_DESC geoDesc = GetRayTracingGeometryDescriptor(geoBuffer);
 
-        std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
-        geometryDescs.push_back(geoDesc);
+        geoBuffer.geometryDescs.clear();
+        geoBuffer.geometryDescs.push_back(geoDesc);
 
         geoBuffer.bottomLevelAccStructDesc = {};
 
@@ -1120,9 +1146,9 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &bottomLevelInputs = geoBuffer.bottomLevelAccStructDesc.Inputs;
         bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
         bottomLevelInputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-        bottomLevelInputs.NumDescs = static_cast<UINT>(geometryDescs.size());
+        bottomLevelInputs.NumDescs = static_cast<UINT>(geoBuffer.geometryDescs.size());
         bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-        bottomLevelInputs.pGeometryDescs = geometryDescs.data();
+        bottomLevelInputs.pGeometryDescs = geoBuffer.geometryDescs.data();
 
         // 1c. BLAS: Create a descriptor for prebuild and query for scratch and result space
         geoBuffer.bottomLevelAccStructPreBuildInfo = {};
@@ -1203,9 +1229,10 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
 
     // 3. Create an instance desc for each of the bottom-level acceleration structure.    
     ComPtr<ID3D12Resource> instanceDescs;
+    std::vector<D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC> fallbackInstanceDescriptions;
+    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> dxrInstanceDescriptions;
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
-        std::vector<D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC> instanceDescriptions;
         UINT instanceId = 0;
         for (auto& geoBuffer : m_geometryBuffers)
         {
@@ -1215,13 +1242,12 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
             instanceDesc.InstanceID = instanceId++;
             UINT numBufferElements = static_cast<UINT>(geoBuffer.bottomLevelAccStructPreBuildInfo.ResultDataMaxSizeInBytes) / sizeof(UINT32);
             instanceDesc.AccelerationStructure = CreateFallbackWrappedPointer(geoBuffer.bottomLevelAccStructure.Get(), numBufferElements);
-            instanceDescriptions.push_back(instanceDesc);
+            fallbackInstanceDescriptions.push_back(instanceDesc);
         }
-        AllocateUploadBuffer(device, instanceDescriptions.data(), instanceDescriptions.size() * sizeof(D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC), &instanceDescs, L"InstanceDescs");
+        AllocateUploadBuffer(device, fallbackInstanceDescriptions.data(), fallbackInstanceDescriptions.size() * sizeof(D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC), &instanceDescs, L"InstanceDescs");
     }
     else // DirectX Raytracing
     {
-        std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescriptions;
         UINT instanceId = 0;
         for (auto& geoBuffer : m_geometryBuffers)
         {
@@ -1230,9 +1256,9 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
             instanceDesc.InstanceMask = 0xFF;
             instanceDesc.InstanceID = instanceId++;
             instanceDesc.AccelerationStructure = geoBuffer.bottomLevelAccStructure->GetGPUVirtualAddress();
-            instanceDescriptions.push_back(instanceDesc);
+            dxrInstanceDescriptions.push_back(instanceDesc);
         }
-        AllocateUploadBuffer(device, instanceDescriptions.data(), instanceDescriptions.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC), &instanceDescs, L"InstanceDescs");
+        AllocateUploadBuffer(device, dxrInstanceDescriptions.data(), dxrInstanceDescriptions.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC), &instanceDescs, L"InstanceDescs");
     }
 
     // 4. Create a wrapped pointer to the acceleration structure.
@@ -1243,7 +1269,7 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
     }
 
     // 5. Assign the scratch and result space for the BLAS
-    for(auto& geoBuffer : m_geometryBuffers)
+    for (auto& geoBuffer : m_geometryBuffers)
     {
         geoBuffer.bottomLevelAccStructDesc.ScratchAccelerationStructureData = geoBuffer.bottomLevelScratchRes->GetGPUVirtualAddress();
         geoBuffer.bottomLevelAccStructDesc.DestAccelerationStructureData = geoBuffer.bottomLevelAccStructure->GetGPUVirtualAddress();
@@ -1262,7 +1288,7 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
         // Set the descriptor heaps to be used during acceleration structure build for the Fallback Layer.
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_descriptorHeap.Get() };
         m_fallbackCommandList->SetDescriptorHeaps(ARRAYSIZE(pDescriptorHeaps), pDescriptorHeaps);
-        for(auto& geoBuffer : m_geometryBuffers)
+        for (auto& geoBuffer : m_geometryBuffers)
         {
             m_fallbackCommandList->BuildRaytracingAccelerationStructure(&geoBuffer.bottomLevelAccStructDesc, 0, nullptr);
             commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(geoBuffer.bottomLevelAccStructure.Get()));
@@ -1271,7 +1297,7 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
     }
     else // DirectX Raytracing
     {
-        for(auto& geoBuffer : m_geometryBuffers)
+        for (auto& geoBuffer : m_geometryBuffers)
         {
             m_dxrCommandList->BuildRaytracingAccelerationStructure(&geoBuffer.bottomLevelAccStructDesc, 0, nullptr);
             commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(geoBuffer.bottomLevelAccStructure.Get()));
@@ -1943,7 +1969,8 @@ void PhotonMajorRenderer::DoPrePassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -1959,7 +1986,7 @@ void PhotonMajorRenderer::DoPrePassPhotonMapping()
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackPrePassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
@@ -1997,7 +2024,8 @@ void PhotonMajorRenderer::DoFirstPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2013,7 +2041,7 @@ void PhotonMajorRenderer::DoFirstPassPhotonMapping()
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackFirstPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
@@ -2051,7 +2079,8 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2067,7 +2096,7 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackSecondPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
@@ -2105,7 +2134,8 @@ void PhotonMajorRenderer::DoThirdPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
         commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
@@ -2121,7 +2151,7 @@ void PhotonMajorRenderer::DoThirdPassPhotonMapping()
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallbackTopLevelAccelerationStructurePointer);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackThirdPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing

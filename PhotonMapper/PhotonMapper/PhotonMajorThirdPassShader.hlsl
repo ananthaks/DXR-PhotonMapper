@@ -19,12 +19,18 @@ RWTexture2DArray<float4> GPhotonNorm : register(u7);
 RWTexture2DArray<float4> GPhotonTangent : register(u8);
 
 RaytracingAccelerationStructure Scene : register(t0, space0);
-ByteAddressBuffer Indices : register(t1, space0);
-StructuredBuffer<Vertex> Vertices : register(t2, space0);
+ByteAddressBuffer Indices[] : register(t0, space1);
+StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
 // Constant Buffer views
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
+
+/*
+ConstantBuffer<UINT> g_geomIndex : register(b0);
+ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b1);
+ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b2);
+*/
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload

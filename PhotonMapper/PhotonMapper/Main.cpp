@@ -14,8 +14,8 @@
 #include "PhotonMajorRenderer.h"
 #include "PMScene.h"
 
-//#define USE_PHOTON_MAJOR_RENDERER
-#define USE_PIXEL_MAJOR_RENDERER
+#define USE_PHOTON_MAJOR_RENDERER
+//#define USE_PIXEL_MAJOR_RENDERER
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 
 #ifdef USE_PHOTON_MAJOR_RENDERER
-    PhotonMajorRenderer sample(SCREEN_WIDTH, SCREEN_HEIGHT, L"DXR Photon Major Renderer");
+    PhotonMajorRenderer sample(scene, SCREEN_WIDTH, SCREEN_HEIGHT, L"DXR Photon Major Renderer");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
 #endif
 

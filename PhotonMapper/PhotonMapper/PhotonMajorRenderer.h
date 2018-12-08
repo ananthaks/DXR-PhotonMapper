@@ -133,8 +133,16 @@ private:
 
     struct GeometryBuffer
     {
+        UINT indexNumElements;
+        UINT indexElementSize;
+
+        UINT vertexNumElements;
+        UINT vertexElementSize;
+
         D3DBuffer indexBuffer;
         D3DBuffer vertexBuffer;
+
+        std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
 
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelAccStructDesc;
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelAccStructPreBuildInfo;

@@ -6,7 +6,9 @@ namespace GlobalRootSignatureParams
     {
         OutputViewSlot = 0,
         AccelerationStructureSlot,
+        //GeomIndexSlot,
         SceneConstantSlot,
+        IndexBuffersSlot,
         VertexBuffersSlot,
         Count 
     };
