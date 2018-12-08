@@ -9,6 +9,19 @@ To implement an efficient Photon Mapper Renderer using DXR API.
 **Connie Chang**
 [LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
 
+# Camera Controls
+Translate along look vector - W and S  
+Translate along right vector - A and D  
+Translate along up vector - Q and E  
+
+Rotate about look vector - M and N   
+Rotate about right vector - Up and Down arrows  
+Rotate about up vector - Left and Right arrows  
+
+**Pixel Major rendering 100,000 photons**
+![](Docs/images/camera_movement.gif)
+
+
 # Milestone 3
 
 **Expectations**:
