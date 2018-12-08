@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DXSample.h"
+#include "PhotonBaseRenderer.h"
 #include "StepTimer.h"
 #include "RaytracingHlslCompat.h"
 #include "Common.h"
@@ -12,15 +12,11 @@
 // Fallback Layer uses DirectX Raytracing if a driver and OS supports it. 
 // Otherwise, it falls back to compute pipeline to emulate raytracing.
 // Developers aiming for a wider HW support should target Fallback Layer.
-class PhotonMapperRenderer : public DXSample
+class PixelMajorRenderer : public PhotonBaseRenderer
 {
-    enum class RaytracingAPI {
-        FallbackLayer,
-        DirectXRaytracing,
-    };
 
 public:
-    PhotonMapperRenderer(UINT width, UINT height, std::wstring name);
+    PixelMajorRenderer(const DXRPhotonMapper::PMScene& scene, UINT width, UINT height, std::wstring name);
 
     // IDeviceNotify
     virtual void OnDeviceLost() override;
@@ -66,19 +62,12 @@ private:
 	AlignedComputeConstantBuffer*  m_mappedComputeConstantData;
 	ComPtr<ID3D12Resource> m_computeConstantRes;
 
-    // Raytracing Fallback Layer (FL) attributes
-    ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
-    ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
     WRAPPED_GPU_POINTER m_fallbackTopLevelAccelerationStructurePointer;
 
-    // DirectX Raytracing (DXR) attributes
-    ComPtr<ID3D12Device5> m_dxrDevice;
-    ComPtr<ID3D12GraphicsCommandList5> m_dxrCommandList;
     ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
-    bool m_isDxrSupported;
 
 	// Compute Stage attributes
 	ComPtr<ID3D12PipelineState> m_computeInitializePSO;
@@ -98,11 +87,6 @@ private:
 	// Root signature for the compute pass
     ComPtr<ID3D12RootSignature> m_computeRootSignature;
 
-    // Descriptors
-    ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
-    UINT m_descriptorsAllocated;
-    UINT m_descriptorSize;
-
     // Raytracing scene
     SceneConstantBuffer m_sceneCB[FrameCount];
     CubeConstantBuffer m_cubeCB;
@@ -110,29 +94,14 @@ private:
 	// Compute Constant Buffer
 	PixelMajorComputeConstantBuffer m_computeConstantBuffer;
 
-    // Geometry
-    struct D3DBuffer
-    {
-        ComPtr<ID3D12Resource> resource;
-        D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle;
-    };
-
     UINT m_gBufferWidth;
     UINT m_gBufferHeight;
     UINT m_gBufferDepth;
-    struct GBuffer
-    {
-        ComPtr<ID3D12Resource> textureResource;
-        D3D12_GPU_DESCRIPTOR_HANDLE uavGPUDescriptor;
-        UINT uavDescriptorHeapIndex;
-    };
-
     std::vector<GBuffer> m_gBuffers;
+
 	GBuffer m_photonCountBuffer;
 	GBuffer m_photonScanBuffer;
 	GBuffer m_photonTempIndexBuffer;
-	
 
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
@@ -174,7 +143,6 @@ private:
 
 
     // Application state
-    RaytracingAPI m_raytracingAPI;
     bool m_forceComputeFallback;
 	bool m_calculatePhotonMap;
     StepTimer m_timer;

@@ -11,14 +11,14 @@
 
 #pragma once
 
-#include "DXSample.h"
+#include "PhotonBaseRenderer.h"
 
-class DXSample;
+class PhotonBaseRenderer;
 
 class Win32Application
 {
 public:
-    static int Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow);
+    static int Run(PhotonBaseRenderer* pSample, HINSTANCE hInstance, int nCmdShow);
     static void ToggleFullscreenWindow(IDXGISwapChain* pOutput = nullptr);
     static void SetWindowZorderToTopMost(bool setToTopMost);
     static HWND GetHwnd() { return m_hwnd; }

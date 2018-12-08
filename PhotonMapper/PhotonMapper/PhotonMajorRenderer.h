@@ -1,11 +1,9 @@
 #pragma once
 
-#include "DXSample.h"
+#include "PhotonBaseRenderer.h"
 #include "StepTimer.h"
 #include "RaytracingHlslCompat.h"
 #include "Common.h"
-#include "DirectXRaytracingHelper.h"
-#include "PMScene.h"
 
 // The sample supports both Raytracing Fallback Layer and DirectX Raytracing APIs. 
 // This is purely for demonstration purposes to show where the API differences are. 
@@ -13,15 +11,10 @@
 // Fallback Layer uses DirectX Raytracing if a driver and OS supports it. 
 // Otherwise, it falls back to compute pipeline to emulate raytracing.
 // Developers aiming for a wider HW support should target Fallback Layer.
-class PhotonMajorRenderer : public DXSample
+class PhotonMajorRenderer : public PhotonBaseRenderer
 {
-    enum class RaytracingAPI {
-        FallbackLayer,
-        DirectXRaytracing,
-    };
-
 public:
-    PhotonMajorRenderer(DXRPhotonMapper::PMScene scene, UINT width, UINT height, std::wstring name);
+    PhotonMajorRenderer(const DXRPhotonMapper::PMScene& scene, UINT width, UINT height, std::wstring name);
 
     // IDeviceNotify
     virtual void OnDeviceLost() override;
@@ -46,7 +39,7 @@ private:
     static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
 
-    DXRPhotonMapper::PMScene m_scene;
+    
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
@@ -60,30 +53,17 @@ private:
     AlignedSceneConstantBuffer*  m_mappedConstantData;
     ComPtr<ID3D12Resource>       m_perFrameConstants;
 
-
-    // Raytracing Fallback Layer (FL) attributes
-    ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
-    ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
-
     // Fallback Pipeline State Objects for different passes
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackPrePassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackThirdPassStateObject;
 
-    WRAPPED_GPU_POINTER m_fallbackTopLevelAccelerationStructurePointer;
-
-    // DirectX Raytracing (DXR) attributes
-    ComPtr<ID3D12Device5> m_dxrDevice;
-    ComPtr<ID3D12GraphicsCommandList5> m_dxrCommandList;
-
     // DXR Pipeline State Objects for different passes
     ComPtr<ID3D12StateObject> m_dxrPrePassStateObject;
     ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrThirdPassStateObject;
-
-    bool m_isDxrSupported;
 
     // Root signatures for the pre pass
     ComPtr<ID3D12RootSignature> m_prePassGlobalRootSignature;
@@ -101,86 +81,17 @@ private:
     ComPtr<ID3D12RootSignature> m_thirdPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_thirdPassLocalRootSignature;
 
-    // Descriptors
-    ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
-    UINT m_descriptorsAllocated;
-    UINT m_descriptorSize;
-
     // Raytracing scene
     SceneConstantBuffer m_sceneCB[FrameCount];
     CubeConstantBuffer m_cubeCB;
-
-    // Geometry
-    struct D3DBuffer
-    {
-        ComPtr<ID3D12Resource> resource;
-        D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle;
-        D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle;
-    };
 
     UINT m_gBufferWidth;
     UINT m_gBufferHeight;
     UINT m_gBufferDepth;
 
-    struct GBuffer
-    {
-        ComPtr<ID3D12Resource> textureResource;
-        D3D12_GPU_DESCRIPTOR_HANDLE uavGPUDescriptor;
-        UINT uavDescriptorHeapIndex;
-    };
-
     std::vector<GBuffer> m_gBuffers;
     std::vector<GBuffer> m_stagingBuffers;
-
-    struct GeometryBuffer
-    {
-        UINT indexNumElements;
-        UINT indexElementSize;
-
-        UINT vertexNumElements;
-        UINT vertexElementSize;
-
-        D3DBuffer indexBuffer;
-        D3DBuffer vertexBuffer;
-
-        // 3 X 4 transform matrix
-        XMMATRIX transformationMatrix;
-
-        std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
-
-        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelAccStructDesc;
-        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelAccStructPreBuildInfo;
-        ComPtr<ID3D12Resource> bottomLevelScratchRes;
-        ComPtr<ID3D12Resource> bottomLevelAccStructure;
-    };
-
-    WRAPPED_GPU_POINTER m_fallBackPrimitiveTLAS;
-    std::vector<GeometryBuffer> m_geometryBuffers;
-
-    struct SceneBufferDescHolder
-    {
-        SceneBufferDesc sceneBufferDesc;
-        D3DBuffer sceneBufferDescRes;
-    };
-    std::vector<SceneBufferDescHolder> m_sceneBufferDescriptors;
-
-    struct MaterialDescHolder
-    {
-        MaterialDesc materialDesc;
-        D3DBuffer materialDescRes;
-    };
-    std::vector<MaterialDescHolder> m_materialDescriptors;
-
-    struct LightDescHolder
-    {
-        LightDesc lightDesc;
-        D3DBuffer lightDescRes;
-    };
-    std::vector<LightDescHolder> m_lightDescriptors;
-
-    // Acceleration structure for the entire scene
-    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
-
+    
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
@@ -207,7 +118,6 @@ private:
     ShaderTableRes m_thirdPassShaderTableRes;
 
     // Application state
-    RaytracingAPI m_raytracingAPI;
     bool m_forceComputeFallback;
     bool m_calculatePhotonMap;
     bool m_clearStagingBuffers;
@@ -227,7 +137,6 @@ private:
     void DoFirstPassPhotonMapping();
     void DoSecondPassPhotonMapping();
     void DoThirdPassPhotonMapping();
-
 
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
@@ -256,15 +165,6 @@ private:
     void CreateStagingRenderTargetResource();
     void CreateGBuffers();
 
-    // Construction of Scene information
-    void GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Vertex>& vertices);
-    void GetIndicesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Index>& indices);
-    void BuildGeometryBuffers();
-    void BuildGeometrySceneBufferDesc();
-    void BuildMaterialBuffer();
-    void BuildLightBuffer();
-    void BuildGeometryAccelerationStructures();
-
     // Construction of Shader tables
     void BuildPrePassShaderTables();
     void BuildFirstPassShaderTables();
@@ -277,13 +177,4 @@ private:
     void CopyStagingBufferToBackBuffer();
     void CopyGBufferToBackBuffer(UINT gbufferIndex);
     void CalculateFrameStats();
-
-
-    UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
-    UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
-    WRAPPED_GPU_POINTER CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
-
-
-    D3D12_RAYTRACING_GEOMETRY_DESC GetRayTracingGeometryDescriptor(const GeometryBuffer& geoBuffer);
-
 };

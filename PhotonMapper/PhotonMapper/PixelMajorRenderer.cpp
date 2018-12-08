@@ -10,7 +10,7 @@
 //*********************************************************
 
 #include "stdafx.h"
-#include "PhotonMapperRenderer.h"
+#include "PixelMajorRenderer.h"
 #include "DirectXRaytracingHelper.h"
 #include "CompiledShaders\PixelMajorFirstPassShader.hlsl.h"
 #include "CompiledShaders\PixelMajorFinalPassShader.hlsl.h"
@@ -18,22 +18,21 @@
 using namespace std;
 using namespace DX;
 
-const wchar_t* PhotonMapperRenderer::c_hitGroupName = L"MyHitGroup";
-const wchar_t* PhotonMapperRenderer::c_raygenShaderName = L"MyRaygenShader";
-const wchar_t* PhotonMapperRenderer::c_closestHitShaderName = L"MyClosestHitShader";
-const wchar_t* PhotonMapperRenderer::c_missShaderName = L"MyMissShader";
+const wchar_t* PixelMajorRenderer::c_hitGroupName = L"MyHitGroup";
+const wchar_t* PixelMajorRenderer::c_raygenShaderName = L"MyRaygenShader";
+const wchar_t* PixelMajorRenderer::c_closestHitShaderName = L"MyClosestHitShader";
+const wchar_t* PixelMajorRenderer::c_missShaderName = L"MyMissShader";
 
-const LPCWSTR PhotonMapperRenderer::c_computeShaderPass0 = L"PixelMajorComputePass0.cso";
-const LPCWSTR PhotonMapperRenderer::c_computeShaderPass01 = L"PixelMajorComputePass0.cso";
-const LPCWSTR PhotonMapperRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
-const LPCWSTR PhotonMapperRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
-const LPCWSTR PhotonMapperRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
+const LPCWSTR PixelMajorRenderer::c_computeShaderPass0 = L"PixelMajorComputePass0.cso";
+const LPCWSTR PixelMajorRenderer::c_computeShaderPass01 = L"PixelMajorComputePass0.cso";
+const LPCWSTR PixelMajorRenderer::c_computeShaderPass1 = L"PixelMajorComputePass1.cso";
+const LPCWSTR PixelMajorRenderer::c_computeShaderPass2 = L"PixelMajorComputePass2.cso";
+const LPCWSTR PixelMajorRenderer::c_computeShaderPass3 = L"PixelMajorComputePass3.cso";
 
-PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring name) :
-    DXSample(width, height, name),
+PixelMajorRenderer::PixelMajorRenderer(const DXRPhotonMapper::PMScene& scene, UINT width, UINT height, std::wstring name) :
+    PhotonBaseRenderer(scene, width, height, name),
     m_raytracingOutputResourceUAVDescriptorHeapIndex(UINT_MAX),
     m_curRotationAngleRad(0.0f),
-    m_isDxrSupported(false),
     m_calculatePhotonMap(false),
     m_fenceValue(0)
 {
@@ -42,7 +41,7 @@ PhotonMapperRenderer::PhotonMapperRenderer(UINT width, UINT height, std::wstring
     UpdateForSizeChange(width, height);
 }
 
-void PhotonMapperRenderer::EnableDirectXRaytracing(IDXGIAdapter1* adapter)
+void PixelMajorRenderer::EnableDirectXRaytracing(IDXGIAdapter1* adapter)
 {
     // Fallback Layer uses an experimental feature and needs to be enabled before creating a D3D12 device.
     bool isFallbackSupported = EnableComputeRaytracingFallback(adapter);
@@ -67,7 +66,7 @@ void PhotonMapperRenderer::EnableDirectXRaytracing(IDXGIAdapter1* adapter)
     }
 }
 
-void PhotonMapperRenderer::OnInit()
+void PixelMajorRenderer::OnInit()
 {
     m_deviceResources = std::make_unique<DeviceResources>(
         DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -96,7 +95,7 @@ void PhotonMapperRenderer::OnInit()
 }
 
 // Update camera matrices passed into the shader.
-void PhotonMapperRenderer::UpdateCameraMatrices()
+void PixelMajorRenderer::UpdateCameraMatrices()
 {
     OutputDebugString(L"UpdateCameraMatrices\n");
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -112,7 +111,7 @@ void PhotonMapperRenderer::UpdateCameraMatrices()
 }
 
 // Initialize scene rendering parameters.
-void PhotonMapperRenderer::InitializeScene()
+void PixelMajorRenderer::InitializeScene()
 {
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
 
@@ -168,7 +167,7 @@ void PhotonMapperRenderer::InitializeScene()
 }
 
 // Create constant buffers.
-void PhotonMapperRenderer::CreateConstantBuffers()
+void PixelMajorRenderer::CreateConstantBuffers()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto frameCount = m_deviceResources->GetBackBufferCount();
@@ -195,7 +194,7 @@ void PhotonMapperRenderer::CreateConstantBuffers()
 }
 
 // Create constant buffers.
-void PhotonMapperRenderer::CreateComputeConstantBuffer()
+void PixelMajorRenderer::CreateComputeConstantBuffer()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -220,7 +219,7 @@ void PhotonMapperRenderer::CreateComputeConstantBuffer()
 }
 
 // Create resources that depend on the device.
-void PhotonMapperRenderer::CreateDeviceDependentResources()
+void PixelMajorRenderer::CreateDeviceDependentResources()
 {
     // Initialize raytracing pipeline.
 
@@ -292,7 +291,7 @@ void PhotonMapperRenderer::CreateDeviceDependentResources()
     }
 }
 
-void PhotonMapperRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
+void PixelMajorRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
 {
     auto device = m_deviceResources->GetD3DDevice();
     ComPtr<ID3DBlob> blob;
@@ -310,7 +309,7 @@ void PhotonMapperRenderer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_
     }
 }
 
-void PhotonMapperRenderer::CreateFirstPassRootSignatures()
+void PixelMajorRenderer::CreateFirstPassRootSignatures()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -346,7 +345,7 @@ void PhotonMapperRenderer::CreateFirstPassRootSignatures()
     }
 }
 
-void PhotonMapperRenderer::CreateSecondPassRootSignatures()
+void PixelMajorRenderer::CreateSecondPassRootSignatures()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -381,7 +380,7 @@ void PhotonMapperRenderer::CreateSecondPassRootSignatures()
     }
 }
 
-void PhotonMapperRenderer::CreateComputeFirstPassRootSignature()
+void PixelMajorRenderer::CreateComputeFirstPassRootSignature()
 {
     auto device = m_deviceResources->GetD3DDevice();
     CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
@@ -401,7 +400,7 @@ void PhotonMapperRenderer::CreateComputeFirstPassRootSignature()
 }
 
 // Create raytracing device and command list.
-void PhotonMapperRenderer::CreateRaytracingInterfaces()
+void PixelMajorRenderer::CreateRaytracingInterfaces()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
@@ -423,7 +422,7 @@ void PhotonMapperRenderer::CreateRaytracingInterfaces()
 
 // Local root signature and shader association
 // This is a root signature that enables a shader to have unique arguments that come from shader tables.
-void PhotonMapperRenderer::CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig)
+void PixelMajorRenderer::CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJECT_DESC* raytracingPipeline, ComPtr<ID3D12RootSignature>* rootSig)
 {
     // Ray gen and miss shaders in this sample are not using a local root signature and thus one is not associated with them.
 
@@ -441,7 +440,7 @@ void PhotonMapperRenderer::CreateLocalRootSignatureSubobjects(CD3D12_STATE_OBJEC
 // Create a raytracing pipeline state object (RTPSO).
 // An RTPSO represents a full set of shaders reachable by a DispatchRays() call,
 // with all configuration options resolved, such as local signatures and other state.
-void PhotonMapperRenderer::CreateFirstPassPhotonPipelineStateObject()
+void PixelMajorRenderer::CreateFirstPassPhotonPipelineStateObject()
 {
     // Create 7 subobjects that combine into a RTPSO:
     // Subobjects need to be associated with DXIL exports (i.e. shaders) either by way of default or explicit associations.
@@ -520,7 +519,7 @@ void PhotonMapperRenderer::CreateFirstPassPhotonPipelineStateObject()
 }
 
 // Creates the PSO for Ray tracing the photons
-void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
+void PixelMajorRenderer::CreateSecondPassPhotonPipelineStateObject()
 {
     CD3D12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
@@ -586,7 +585,7 @@ void PhotonMapperRenderer::CreateSecondPassPhotonPipelineStateObject()
     }
 }
 
-void PhotonMapperRenderer::CreateComputePipelineStateObject(const LPCWSTR& compiledShaderName, ComPtr<ID3D12PipelineState>& computePipeline)
+void PixelMajorRenderer::CreateComputePipelineStateObject(const LPCWSTR& compiledShaderName, ComPtr<ID3D12PipelineState>& computePipeline)
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -603,7 +602,7 @@ void PhotonMapperRenderer::CreateComputePipelineStateObject(const LPCWSTR& compi
 }
 
 // Create 2D output texture for raytracing.
-void PhotonMapperRenderer::CreateRaytracingOutputResource()
+void PixelMajorRenderer::CreateRaytracingOutputResource()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
@@ -624,7 +623,7 @@ void PhotonMapperRenderer::CreateRaytracingOutputResource()
     m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, m_descriptorSize);
 }
 
-void PhotonMapperRenderer::CreateGBuffers()
+void PixelMajorRenderer::CreateGBuffers()
 {
     // There are 3 G Buffers defined here. All of them are unordered access views
     // 1. Photon Position
@@ -677,7 +676,7 @@ void PhotonMapperRenderer::CreateGBuffers()
     }
 }
 
-void PhotonMapperRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
+void PixelMajorRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
 {
     // Create a buffer for hash grid construction
     // A texture that stores the number of photons in each cell
@@ -705,7 +704,7 @@ void PhotonMapperRenderer::CreatePhotonCountBuffer(GBuffer& gBuffer)
     gBuffer.uavGPUDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), gBuffer.uavDescriptorHeapIndex, m_descriptorSize);
 }
 
-void PhotonMapperRenderer::CreateDescriptorHeap()
+void PixelMajorRenderer::CreateDescriptorHeap()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -726,7 +725,7 @@ void PhotonMapperRenderer::CreateDescriptorHeap()
 }
 
 // Build geometry used in the sample.
-void PhotonMapperRenderer::BuildGeometry()
+void PixelMajorRenderer::BuildGeometry()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -848,7 +847,7 @@ void PhotonMapperRenderer::BuildGeometry()
 }
 
 // Build acceleration structures needed for raytracing.
-void PhotonMapperRenderer::BuildAccelerationStructures()
+void PixelMajorRenderer::BuildAccelerationStructures()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
@@ -1026,7 +1025,7 @@ void PhotonMapperRenderer::BuildAccelerationStructures()
 
 // Build shader tables.
 // This encapsulates all shader records - shaders and the arguments for their local root signatures.
-void PhotonMapperRenderer::BuildFirstPassShaderTables()
+void PixelMajorRenderer::BuildFirstPassShaderTables()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -1094,7 +1093,7 @@ void PhotonMapperRenderer::BuildFirstPassShaderTables()
 
 // Build shader tables.
 // This encapsulates all shader records - shaders and the arguments for their local root signatures.
-void PhotonMapperRenderer::BuildSecondPassShaderTables()
+void PixelMajorRenderer::BuildSecondPassShaderTables()
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -1159,7 +1158,7 @@ void PhotonMapperRenderer::BuildSecondPassShaderTables()
     }
 }
 
-void PhotonMapperRenderer::SelectRaytracingAPI(RaytracingAPI type)
+void PixelMajorRenderer::SelectRaytracingAPI(RaytracingAPI type)
 {
     if (type == RaytracingAPI::FallbackLayer)
     {
@@ -1178,7 +1177,7 @@ void PhotonMapperRenderer::SelectRaytracingAPI(RaytracingAPI type)
     }
 }
 
-void PhotonMapperRenderer::OnKeyDown(UINT8 key)
+void PixelMajorRenderer::OnKeyDown(UINT8 key)
 {
     // Store previous values.
     RaytracingAPI previousRaytracingAPI = m_raytracingAPI;
@@ -1413,7 +1412,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 }
 
 // Update frame-based values.
-void PhotonMapperRenderer::OnUpdate()
+void PixelMajorRenderer::OnUpdate()
 {
     m_timer.Tick();
     CalculateFrameStats();
@@ -1451,9 +1450,9 @@ void PhotonMapperRenderer::OnUpdate()
 
 
 // Parse supplied command line args.
-void PhotonMapperRenderer::ParseCommandLineArgs(WCHAR* argv[], int argc)
+void PixelMajorRenderer::ParseCommandLineArgs(WCHAR* argv[], int argc)
 {
-    DXSample::ParseCommandLineArgs(argv, argc);
+    PhotonBaseRenderer::ParseCommandLineArgs(argv, argc);
 
     if (argc > 1)
     {
@@ -1469,7 +1468,7 @@ void PhotonMapperRenderer::ParseCommandLineArgs(WCHAR* argv[], int argc)
     }
 }
 
-void PhotonMapperRenderer::DoFirstPassPhotonMapping()
+void PixelMajorRenderer::DoFirstPassPhotonMapping()
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -1523,7 +1522,7 @@ void PhotonMapperRenderer::DoFirstPassPhotonMapping()
     }
 }
 
-void PhotonMapperRenderer::DoSecondPassPhotonMapping()
+void PixelMajorRenderer::DoSecondPassPhotonMapping()
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -1577,7 +1576,7 @@ void PhotonMapperRenderer::DoSecondPassPhotonMapping()
     }
 }
 
-void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, UINT xThreads, UINT yThreads, UINT zThreads)
+void PixelMajorRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO, UINT xThreads, UINT yThreads, UINT zThreads)
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
@@ -1597,13 +1596,13 @@ void PhotonMapperRenderer::DoComputePass(ComPtr<ID3D12PipelineState>& computePSO
 }
 
 // Update the application state with the new resolution.
-void PhotonMapperRenderer::UpdateForSizeChange(UINT width, UINT height)
+void PixelMajorRenderer::UpdateForSizeChange(UINT width, UINT height)
 {
-    DXSample::UpdateForSizeChange(width, height);
+    PhotonBaseRenderer::UpdateForSizeChange(width, height);
 }
 
 // Copy the raytracing output to the backbuffer.
-void PhotonMapperRenderer::CopyRaytracingOutputToBackbuffer()
+void PixelMajorRenderer::CopyRaytracingOutputToBackbuffer()
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
@@ -1623,7 +1622,7 @@ void PhotonMapperRenderer::CopyRaytracingOutputToBackbuffer()
 }
 
 // Copy data from one UAV to another.
-void PhotonMapperRenderer::CopyUAVData(GBuffer& source, GBuffer& destination)
+void PixelMajorRenderer::CopyUAVData(GBuffer& source, GBuffer& destination)
 {
     auto commandList = m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
@@ -1642,7 +1641,7 @@ void PhotonMapperRenderer::CopyUAVData(GBuffer& source, GBuffer& destination)
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
-void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
+void PixelMajorRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 {
     if (m_gBuffers.size() > gbufferIndex)
     {
@@ -1667,7 +1666,7 @@ void PhotonMapperRenderer::CopyGBUfferToBackBuffer(UINT gbufferIndex)
 }
 
 // Create resources that are dependent on the size of the main window.
-void PhotonMapperRenderer::CreateWindowSizeDependentResources()
+void PixelMajorRenderer::CreateWindowSizeDependentResources()
 {
     CreateRaytracingOutputResource();
     CreatePhotonCountBuffer(m_photonCountBuffer);
@@ -1678,7 +1677,7 @@ void PhotonMapperRenderer::CreateWindowSizeDependentResources()
 }
 
 // Release resources that are dependent on the size of the main window.
-void PhotonMapperRenderer::ReleaseWindowSizeDependentResources()
+void PixelMajorRenderer::ReleaseWindowSizeDependentResources()
 {
     m_raytracingOutput.Reset();
 
@@ -1689,7 +1688,7 @@ void PhotonMapperRenderer::ReleaseWindowSizeDependentResources()
 }
 
 // Release all resources that depend on the device.
-void PhotonMapperRenderer::ReleaseDeviceDependentResources()
+void PixelMajorRenderer::ReleaseDeviceDependentResources()
 {
     m_fallbackDevice.Reset();
     m_fallbackCommandList.Reset();
@@ -1744,7 +1743,7 @@ void PhotonMapperRenderer::ReleaseDeviceDependentResources()
 
 }
 
-void PhotonMapperRenderer::RecreateD3D()
+void PixelMajorRenderer::RecreateD3D()
 {
     // Give GPU a chance to finish its execution in progress.
     try
@@ -1759,7 +1758,7 @@ void PhotonMapperRenderer::RecreateD3D()
 }
 
 // Render the scene.
-void PhotonMapperRenderer::OnRender()
+void PixelMajorRenderer::OnRender()
 {
     if (!m_deviceResources->IsWindowVisible())
     {
@@ -1860,7 +1859,7 @@ void PhotonMapperRenderer::OnRender()
     m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void PhotonMapperRenderer::OnDestroy()
+void PixelMajorRenderer::OnDestroy()
 {
     // Let GPU finish before releasing D3D resources.
     m_deviceResources->WaitForGpu();
@@ -1868,21 +1867,21 @@ void PhotonMapperRenderer::OnDestroy()
 }
 
 // Release all device dependent resouces when a device is lost.
-void PhotonMapperRenderer::OnDeviceLost()
+void PixelMajorRenderer::OnDeviceLost()
 {
     ReleaseWindowSizeDependentResources();
     ReleaseDeviceDependentResources();
 }
 
 // Create all device dependent resources when a device is restored.
-void PhotonMapperRenderer::OnDeviceRestored()
+void PixelMajorRenderer::OnDeviceRestored()
 {
     CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
 }
 
 // Compute the average frames per second and million rays per second.
-void PhotonMapperRenderer::CalculateFrameStats()
+void PixelMajorRenderer::CalculateFrameStats()
 {
     static int frameCnt = 0;
     static double elapsedTime = 0.0f;
@@ -1926,7 +1925,7 @@ void PhotonMapperRenderer::CalculateFrameStats()
 }
 
 // Handle OnSizeChanged message event.
-void PhotonMapperRenderer::OnSizeChanged(UINT width, UINT height, bool minimized)
+void PixelMajorRenderer::OnSizeChanged(UINT width, UINT height, bool minimized)
 {
     if (!m_deviceResources->WindowSizeChanged(width, height, minimized))
     {
@@ -1940,7 +1939,7 @@ void PhotonMapperRenderer::OnSizeChanged(UINT width, UINT height, bool minimized
 }
 
 // Create a wrapped pointer for the Fallback Layer path.
-WRAPPED_GPU_POINTER PhotonMapperRenderer::CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements)
+WRAPPED_GPU_POINTER PixelMajorRenderer::CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements)
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -1964,7 +1963,7 @@ WRAPPED_GPU_POINTER PhotonMapperRenderer::CreateFallbackWrappedPointer(ID3D12Res
 
 // Allocate a descriptor and return its index. 
 // If the passed descriptorIndexToUse is valid, it will be used instead of allocating a new one.
-UINT PhotonMapperRenderer::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse)
+UINT PixelMajorRenderer::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse)
 {
     auto descriptorHeapCpuBase = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
     if (descriptorIndexToUse >= m_descriptorHeap->GetDesc().NumDescriptors)
@@ -1976,7 +1975,7 @@ UINT PhotonMapperRenderer::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDe
 }
 
 // Create SRV for a buffer.
-UINT PhotonMapperRenderer::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize)
+UINT PixelMajorRenderer::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize)
 {
     auto device = m_deviceResources->GetD3DDevice();
 
@@ -2003,7 +2002,7 @@ UINT PhotonMapperRenderer::CreateBufferSRV(D3DBuffer* buffer, UINT numElements, 
     return descriptorIndex;
 }
 
-void PhotonMapperRenderer::ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueueNo)
+void PixelMajorRenderer::ScanWaitForGPU(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueueNo)
 {
     auto commandQueue = m_deviceResources->GetCommandQueue();
 

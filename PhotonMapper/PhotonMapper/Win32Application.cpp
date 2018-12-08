@@ -18,7 +18,7 @@ bool Win32Application::m_fullscreenMode = false;
 RECT Win32Application::m_windowRect;
 using Microsoft::WRL::ComPtr;
 
-int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
+int Win32Application::Run(PhotonBaseRenderer* pSample, HINSTANCE hInstance, int nCmdShow)
 {
     try
     {
@@ -184,7 +184,7 @@ void Win32Application::SetWindowZorderToTopMost(bool setToTopMost)
 // Main message handler for the sample.
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    PhotonBaseRenderer* pSample = reinterpret_cast<PhotonBaseRenderer*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     switch (message)
     {
