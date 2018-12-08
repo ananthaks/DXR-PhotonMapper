@@ -5,6 +5,7 @@
 #include "RaytracingHlslCompat.h"
 #include "Common.h"
 #include "DirectXRaytracingHelper.h"
+#include "PMScene.h"
 
 // The sample supports both Raytracing Fallback Layer and DirectX Raytracing APIs. 
 // This is purely for demonstration purposes to show where the API differences are. 
@@ -20,7 +21,7 @@ class PhotonMajorRenderer : public DXSample
     };
 
 public:
-    PhotonMajorRenderer(UINT width, UINT height, std::wstring name);
+    PhotonMajorRenderer(DXRPhotonMapper::PMScene scene, UINT width, UINT height, std::wstring name);
 
     // IDeviceNotify
     virtual void OnDeviceLost() override;
@@ -42,6 +43,10 @@ private:
     static const UINT NumGBuffers = 4;
     static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
+
+
+    DXRPhotonMapper::PMScene m_scene;
+
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
@@ -122,8 +127,23 @@ private:
         UINT uavDescriptorHeapIndex;
     };
 
+
     std::vector<GBuffer> m_gBuffers;
     std::vector<GBuffer> m_stagingBuffers;
+
+    struct GeometryBuffer
+    {
+        D3DBuffer indexBuffer;
+        D3DBuffer vertexBuffer;
+
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelAccStructDesc;
+        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelAccStructPreBuildInfo;
+        ComPtr<ID3D12Resource> bottomLevelScratchRes;
+        ComPtr<ID3D12Resource> bottomLevelAccStructure;
+    };
+
+    WRAPPED_GPU_POINTER m_fallBackPrimitiveTLAS;
+    std::vector<GeometryBuffer> m_geometryBuffers;
 
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
@@ -134,6 +154,11 @@ private:
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
+
+    // Primitive Acceeleration structures
+    
+    ComPtr<ID3D12Resource> m_geoTLAS;
+
 
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
@@ -206,7 +231,14 @@ private:
     void CreateRaytracingOutputResource();
     void CreateStagingRenderTargetResource();
     void CreateGBuffers();
+    
     void BuildGeometry();
+
+    void GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Vertex>& vertices);
+    void GetIndicesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Index>& indices);
+    void BuildGeometryBuffers();
+    void BuildGeometryAccelerationStructures();
+
     void BuildAccelerationStructures();
 
     void BuildPrePassShaderTables();
@@ -220,7 +252,13 @@ private:
     void CopyStagingBufferToBackBuffer();
     void CopyGBufferToBackBuffer(UINT gbufferIndex);
     void CalculateFrameStats();
+
+
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
     UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
     WRAPPED_GPU_POINTER CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
+
+
+    D3D12_RAYTRACING_GEOMETRY_DESC GetRayTracingGeometryDescriptor(const GeometryBuffer& geoBuffer);
+
 };

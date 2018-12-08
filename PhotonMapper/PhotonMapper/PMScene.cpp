@@ -13,7 +13,7 @@ namespace DXRPhotonMapper
     //------------------------------------------------------
     // Constructor
     //------------------------------------------------------
-    PMScene::PMScene(UINT width, UINT height) : m_screenSize{width, height}
+    PMScene::PMScene(UINT width, UINT height) : m_screenSize{ width, height }
     {
     }
 
@@ -32,23 +32,23 @@ namespace DXRPhotonMapper
         std::map<std::string, std::vector<std::string> >::const_iterator it(m_gltfScene.scenes.begin());
         std::map<std::string, std::vector<std::string> >::const_iterator itEnd(m_gltfScene.scenes.end());
 
-        for (; it != itEnd; it++) 
+        for (; it != itEnd; it++)
         {
-            for (size_t i = 0; i < it->second.size(); i++) 
+            for (size_t i = 0; i < it->second.size(); i++)
             {
                 //OutputDebugString(Lit->second[i] << ((i != (it->second.size() - 1)) ? ", " : "");
             }
-           // OutputDebugString(L" ] ");
+            // OutputDebugString(L" ] ");
         }
     }
 
     PrimitiveType StringToPrimitiveType(const std::string& primTypeString)
     {
-        if(primTypeString.compare("SquarePlane") == 0)
+        if (primTypeString.compare("SquarePlane") == 0)
         {
             return PrimitiveType::SquarePlane;
         }
-        else if(primTypeString.compare("Cube") == 0)
+        else if (primTypeString.compare("Cube") == 0)
         {
             return PrimitiveType::Cube;
         }
@@ -60,15 +60,15 @@ namespace DXRPhotonMapper
 
     LightType StringToLightType(const std::string& lightTypeString)
     {
-        if(lightTypeString.compare("PointLight") == 0)
+        if (lightTypeString.compare("PointLight") == 0)
         {
             return LightType::PointLight;
         }
-        else if(lightTypeString.compare("AreaLight") == 0)
+        else if (lightTypeString.compare("AreaLight") == 0)
         {
             return LightType::AreaLight;
         }
-        else if(lightTypeString.compare("SpotLight") == 0)
+        else if (lightTypeString.compare("SpotLight") == 0)
         {
             return LightType::SpotLight;
         }
@@ -80,9 +80,9 @@ namespace DXRPhotonMapper
 
     int StringToMaterialIndex(const std::string& materialName, const std::vector<Material>& m_materials)
     {
-        for(size_t i = 0; i < m_materials.size(); ++i)
+        for (size_t i = 0; i < m_materials.size(); ++i)
         {
-            if(m_materials[i].m_name.compare(materialName) == 0)
+            if (m_materials[i].m_name.compare(materialName) == 0)
             {
                 return int(i);
             }
@@ -98,37 +98,37 @@ namespace DXRPhotonMapper
         std::string err = "";
 
         double width = 0.0;
-        if(!ParseNumberProperty(&width, &err, cameraObj, "width", true))
+        if (!ParseNumberProperty(&width, &err, cameraObj, "width", true))
         {
             OutputDebugString(L"Error Parsing width");
         }
 
         double height = 0.0;
-        if(!ParseNumberProperty(&height, &err, cameraObj, "height", true))
+        if (!ParseNumberProperty(&height, &err, cameraObj, "height", true))
         {
             OutputDebugString(L"Error Parsing height");
         }
 
         double fov = 0.0;
-        if(!ParseNumberProperty(&fov, &err, cameraObj, "fov", true))
+        if (!ParseNumberProperty(&fov, &err, cameraObj, "fov", true))
         {
             OutputDebugString(L"Error Parsing fov");
         }
 
         std::vector<double> eye(3);
-        if(!ParseNumberArrayProperty(&eye, &err, cameraObj, "eye", true))
+        if (!ParseNumberArrayProperty(&eye, &err, cameraObj, "eye", true))
         {
             OutputDebugString(L"Error Parsing eye");
         }
-        
+
         std::vector<double> ref(3);
-        if(!ParseNumberArrayProperty(&ref, &err, cameraObj, "ref", true))
+        if (!ParseNumberArrayProperty(&ref, &err, cameraObj, "ref", true))
         {
             OutputDebugString(L"Error Parsing ref");
         }
 
         std::vector<double> worldUp(3);
-        if(!ParseNumberArrayProperty(&worldUp, &err, cameraObj, "worldUp", true))
+        if (!ParseNumberArrayProperty(&worldUp, &err, cameraObj, "worldUp", true))
         {
             OutputDebugString(L"Error Parsing worldUp");
         }
@@ -136,9 +136,9 @@ namespace DXRPhotonMapper
         camera.m_width = UINT(width);
         camera.m_height = UINT(height);
         camera.m_fov = float(fov);
-        camera.m_eye = {float(eye[0]), float(eye[1]), float(eye[2])};
-        camera.m_ref = {float(ref[0]), float(ref[1]), float(ref[2])};
-        camera.m_up = {float(worldUp[0]), float(worldUp[1]), float(worldUp[2])};
+        camera.m_eye = { float(eye[0]), float(eye[1]), float(eye[2]) };
+        camera.m_ref = { float(ref[0]), float(ref[1]), float(ref[2]) };
+        camera.m_up = { float(worldUp[0]), float(worldUp[1]), float(worldUp[2]) };
 
         // Just for Debugging
         std::wstringstream wstr;
@@ -157,17 +157,17 @@ namespace DXRPhotonMapper
     bool LoadJSONPrimitives(picojson::value& root, std::vector<Primitive>& primitives, const std::vector<Material>& m_materials)
     {
         std::string err = "";
-        const picojson::array& primitiveArray =  root.get("primitives").get<picojson::array>();
+        const picojson::array& primitiveArray = root.get("primitives").get<picojson::array>();
 
         primitives.clear();
-        for(size_t i = 0; i < primitiveArray.size(); i++)
+        for (size_t i = 0; i < primitiveArray.size(); i++)
         {
             Primitive primitive = {};
             const picojson::object& primitiveObj = primitiveArray[i].get<picojson::object>();
 
             // Shape Type
             std::string shapeName;
-            if(!ParseStringProperty(&shapeName, &err, primitiveObj, "shape", true))
+            if (!ParseStringProperty(&shapeName, &err, primitiveObj, "shape", true))
             {
                 OutputDebugString(L"Error Parsing shape");
             }
@@ -175,53 +175,53 @@ namespace DXRPhotonMapper
 
             // Primitive Identifier
             std::string primName;
-            if(!ParseStringProperty(&primName, &err, primitiveObj, "name", true))
+            if (!ParseStringProperty(&primName, &err, primitiveObj, "name", true))
             {
                 OutputDebugString(L"Error Parsing name");
             }
             primitive.m_name = primName;
-            
+
             // Primitive Material ID
             std::string matName;
-            if(!ParseStringProperty(&matName, &err, primitiveObj, "material", true))
+            if (!ParseStringProperty(&matName, &err, primitiveObj, "material", true))
             {
                 OutputDebugString(L"Error Parsing material");
             }
             primitive.m_materialID = StringToMaterialIndex(matName, m_materials);
-            
+
             // Primitive Transform
             picojson::object::const_iterator transformIt = primitiveObj.find("transform");
-            if ((transformIt != primitiveObj.end()) && (transformIt->second).is<picojson::object>()) 
+            if ((transformIt != primitiveObj.end()) && (transformIt->second).is<picojson::object>())
             {
                 const picojson::object &transformObj = (transformIt->second).get<picojson::object>();
 
                 std::vector<double> translate(3);
-                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false)) 
+                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false))
                 {
                     OutputDebugString(L"Error Parsing translate");
                 }
 
                 std::vector<double> rotate(3);
-                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false)) 
+                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false))
                 {
                     OutputDebugString(L"Error Parsing rotate");
                 }
 
                 std::vector<double> scale(3);
-                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false)) 
+                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false))
                 {
                     OutputDebugString(L"Error Parsing scale");
                 }
 
-                primitive.m_translate = {float(translate[0]), float(translate[1]), float(translate[2])};
-                primitive.m_rotate = {float(rotate[0]), float(rotate[1]), float(rotate[2])};
-                primitive.m_scale = {float(scale[0]), float(scale[1]), float(scale[2])};
+                primitive.m_translate = { float(translate[0]), float(translate[1]), float(translate[2]) };
+                primitive.m_rotate = { float(rotate[0]), float(rotate[1]), float(rotate[2]) };
+                primitive.m_scale = { float(scale[0]), float(scale[1]), float(scale[2]) };
             }
             primitives.push_back(primitive);
         }
 
         // For Debug Purpose only
-        for(size_t i = 0; i < primitives.size(); ++i)
+        for (size_t i = 0; i < primitives.size(); ++i)
         {
             std::wstringstream wstr;
             wstr << "Found Primitive " << i << std::endl;
@@ -238,17 +238,17 @@ namespace DXRPhotonMapper
     bool LoadJSONMaterials(picojson::value& root, std::vector<Material>& materials)
     {
         std::string err = "";
-        const picojson::array& materialArray =  root.get("materials").get<picojson::array>();
+        const picojson::array& materialArray = root.get("materials").get<picojson::array>();
 
         materials.clear();
-        for(size_t i = 0; i < materialArray.size(); i++)
+        for (size_t i = 0; i < materialArray.size(); i++)
         {
             Material material = {};
             const picojson::object& materialObj = materialArray[i].get<picojson::object>();
 
             // Material Name
             std::string matName;
-            if(!ParseStringProperty(&matName, &err, materialObj, "name", true))
+            if (!ParseStringProperty(&matName, &err, materialObj, "name", true))
             {
                 OutputDebugString(L"Error Parsing name");
             }
@@ -256,24 +256,24 @@ namespace DXRPhotonMapper
 
             // Material albedo
             std::vector<double> albedo(3);
-            if (!ParseNumberArrayProperty(&albedo, &err, materialObj, "albedo", false)) 
+            if (!ParseNumberArrayProperty(&albedo, &err, materialObj, "albedo", false))
             {
                 OutputDebugString(L"Error Parsing albedo");
             }
 
             // Material Type
             std::string matType;
-            if(!ParseStringProperty(&matType, &err, materialObj, "type", true))
+            if (!ParseStringProperty(&matType, &err, materialObj, "type", true))
             {
                 OutputDebugString(L"Error Parsing type");
             }
 
-            if(matType.compare("MatteMaterial") == 0)
+            if (matType.compare("MatteMaterial") == 0)
             {
                 material.m_materialFlags = MaterialFlag::BSDF_DIFFUSE;
-                
+
                 DiffuseMat diffuseMat = {};
-                diffuseMat.m_albedo = {float(albedo[0]), float(albedo[1]), float(albedo[2])};
+                diffuseMat.m_albedo = { float(albedo[0]), float(albedo[1]), float(albedo[2]) };
                 diffuseMat.m_matIdentifier = MaterialFlag::BSDF_DIFFUSE;
 
                 material.m_materials.push_back(diffuseMat);
@@ -287,7 +287,7 @@ namespace DXRPhotonMapper
         }
 
         // For Debug Purpose only
-        for(size_t i = 0; i < materials.size(); ++i)
+        for (size_t i = 0; i < materials.size(); ++i)
         {
             std::wstringstream wstr;
             wstr << "Found Material " << i << std::endl;
@@ -301,17 +301,17 @@ namespace DXRPhotonMapper
     bool LoadJSONLights(picojson::value& root, std::vector<Light>& lights)
     {
         std::string err = "";
-        const picojson::array& lightArray =  root.get("lights").get<picojson::array>();
+        const picojson::array& lightArray = root.get("lights").get<picojson::array>();
 
         lights.clear();
-        for(size_t i = 0; i < lightArray.size(); i++)
+        for (size_t i = 0; i < lightArray.size(); i++)
         {
             Light light = {};
             const picojson::object& lightObj = lightArray[i].get<picojson::object>();
 
             // Light Name
             std::string lightName;
-            if(!ParseStringProperty(&lightName, &err, lightObj, "name", true))
+            if (!ParseStringProperty(&lightName, &err, lightObj, "name", true))
             {
                 OutputDebugString(L"Error Parsing name");
             }
@@ -319,7 +319,7 @@ namespace DXRPhotonMapper
 
             // Light Intensity
             double intensity = 0.0;
-            if(!ParseNumberProperty(&intensity, &err, lightObj, "intensity", true))
+            if (!ParseNumberProperty(&intensity, &err, lightObj, "intensity", true))
             {
                 OutputDebugString(L"Error Parsing fov");
             }
@@ -327,115 +327,115 @@ namespace DXRPhotonMapper
 
             // Light color
             std::vector<double> color(3);
-            if (!ParseNumberArrayProperty(&color, &err, lightObj, "lightColor", true)) 
+            if (!ParseNumberArrayProperty(&color, &err, lightObj, "lightColor", true))
             {
                 OutputDebugString(L"Error Parsing color");
             }
-            light.m_lightColor = {float(color[0]), float(color[1]), float(color[2])};
+            light.m_lightColor = { float(color[0]), float(color[1]), float(color[2]) };
 
             // Light Transform
             picojson::object::const_iterator transformIt = lightObj.find("transform");
-            if ((transformIt != lightObj.end()) && (transformIt->second).is<picojson::object>()) 
+            if ((transformIt != lightObj.end()) && (transformIt->second).is<picojson::object>())
             {
                 const picojson::object &transformObj = (transformIt->second).get<picojson::object>();
 
                 std::vector<double> translate(3);
-                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false)) 
+                if (!ParseNumberArrayProperty(&translate, &err, transformObj, "translate", false))
                 {
                     OutputDebugString(L"Error Parsing translate");
                 }
 
                 std::vector<double> rotate(3);
-                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false)) 
+                if (!ParseNumberArrayProperty(&rotate, &err, transformObj, "rotate", false))
                 {
                     OutputDebugString(L"Error Parsing rotate");
                 }
 
                 std::vector<double> scale(3);
-                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false)) 
+                if (!ParseNumberArrayProperty(&scale, &err, transformObj, "scale", false))
                 {
                     OutputDebugString(L"Error Parsing scale");
                 }
 
-                light.m_translate = {float(translate[0]), float(translate[1]), float(translate[2])};
-                light.m_rotate = {float(rotate[0]), float(rotate[1]), float(rotate[2])};
-                light.m_scale = {float(scale[0]), float(scale[1]), float(scale[2])};
+                light.m_translate = { float(translate[0]), float(translate[1]), float(translate[2]) };
+                light.m_rotate = { float(rotate[0]), float(rotate[1]), float(rotate[2]) };
+                light.m_scale = { float(scale[0]), float(scale[1]), float(scale[2]) };
             }
 
             // Light Type
             std::string lightType;
-            if(!ParseStringProperty(&lightType, &err, lightObj, "type", true))
+            if (!ParseStringProperty(&lightType, &err, lightObj, "type", true))
             {
                 OutputDebugString(L"Error Parsing type");
             }
             light.m_lightType = StringToLightType(lightType);
 
 
-            switch(light.m_lightType)
+            switch (light.m_lightType)
             {
-                case LightType::PointLight:
+            case LightType::PointLight:
+            {
+                // Drop off
+                double dropOff = 0.0;
+                if (!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
                 {
-                    // Drop off
-                    double dropOff = 0.0;
-                    if(!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
-                    {
-                        OutputDebugString(L"Error Parsing dropOff");
-                    }
-                    PointLight pointLight = {};
-                    pointLight.dropOff = float(dropOff);
-                    
-                    light.LightDesc.pointLight = pointLight;
+                    OutputDebugString(L"Error Parsing dropOff");
                 }
-                break;
-                case LightType::AreaLight:
-                {
-                    // Two Sided
-                    bool twoSided = false;
-                    if(!ParseBooleanProperty(&twoSided, &err, lightObj, "twoSided", true))
-                    {
-                        OutputDebugString(L"Error Parsing twoSided");
-                    }
-                    AreaLight areaLight = {};
-                    areaLight.isTwoSided = twoSided;
+                PointLight pointLight = {};
+                pointLight.dropOff = float(dropOff);
 
-                    light.LightDesc.areaLight = areaLight;
-                }
-                break;
-                case LightType::SpotLight:
+                light.LightDesc.pointLight = pointLight;
+            }
+            break;
+            case LightType::AreaLight:
+            {
+                // Two Sided
+                bool twoSided = false;
+                if (!ParseBooleanProperty(&twoSided, &err, lightObj, "twoSided", true))
                 {
-                    // Drop off
-                    double dropOff = 0.0;
-                    if(!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
-                    {
-                        OutputDebugString(L"Error Parsing dropOff");
-                    }
-
-                    // Cone Angle
-                    double coneAngle = 0.0;
-                    if(!ParseNumberProperty(&coneAngle, &err, lightObj, "coneAngle", true))
-                    {
-                        OutputDebugString(L"Error Parsing coneAngle");
-                    }
-                    SpotLight spotLight = {};
-                    spotLight.dropOff = float(dropOff);
-                    spotLight.coneAngle = float(coneAngle);
-
-                    light.LightDesc.spotLight = spotLight;
+                    OutputDebugString(L"Error Parsing twoSided");
                 }
-                break;
-                case LightType::Error:
-                default:
+                AreaLight areaLight = {};
+                areaLight.isTwoSided = twoSided;
+
+                light.LightDesc.areaLight = areaLight;
+            }
+            break;
+            case LightType::SpotLight:
+            {
+                // Drop off
+                double dropOff = 0.0;
+                if (!ParseNumberProperty(&dropOff, &err, lightObj, "dropOff", true))
                 {
-                    OutputDebugString(L"Unknown Light Type\n");
+                    OutputDebugString(L"Error Parsing dropOff");
                 }
-                break;
+
+                // Cone Angle
+                double coneAngle = 0.0;
+                if (!ParseNumberProperty(&coneAngle, &err, lightObj, "coneAngle", true))
+                {
+                    OutputDebugString(L"Error Parsing coneAngle");
+                }
+                SpotLight spotLight = {};
+                spotLight.dropOff = float(dropOff);
+                spotLight.coneAngle = float(coneAngle);
+
+                light.LightDesc.spotLight = spotLight;
+            }
+            break;
+            case LightType::Error:
+            default:
+            {
+                OutputDebugString(L"Unknown Light Type\n");
+            }
+            break;
             }
 
             lights.push_back(light);
         }
 
         // For Debug Purpose only
-        for(size_t i = 0; i < lights.size(); ++i)
+        for (size_t i = 0; i < lights.size(); ++i)
         {
             std::wstringstream wstr;
             wstr << "Found Light " << i << std::endl;
@@ -459,52 +459,52 @@ namespace DXRPhotonMapper
         picojson::value v;
         std::string perr = picojson::parse(v, str, str + length);
 
-        if (!perr.empty()) 
+        if (!perr.empty())
         {
             OutputDebugString(L"Could not parse JSON file\n");
             return false;
         }
 
-        if (!(v.contains("camera") && v.get("camera").is<picojson::object>())) 
+        if (!(v.contains("camera") && v.get("camera").is<picojson::object>()))
         {
             OutputDebugString(L"JSON File Does not contain camera\n");
             return false;
         }
 
-        if (!(v.contains("primitives") && v.get("primitives").is<picojson::array>())) 
+        if (!(v.contains("primitives") && v.get("primitives").is<picojson::array>()))
         {
             OutputDebugString(L"JSON File Does not contain primitives\n");
             return false;
         }
 
-        if (!(v.contains("lights") && v.get("lights").is<picojson::array>())) 
+        if (!(v.contains("lights") && v.get("lights").is<picojson::array>()))
         {
             OutputDebugString(L"JSON File Does not contain lights\n");
             return false;
         }
 
-        if (!(v.contains("materials") && v.get("materials").is<picojson::array>())) 
+        if (!(v.contains("materials") && v.get("materials").is<picojson::array>()))
         {
             OutputDebugString(L"JSON File Does not contain materials\n");
             return false;
         }
 
-        if(!LoadJSONCamera(v, m_camera))
+        if (!LoadJSONCamera(v, m_camera))
         {
             OutputDebugString(L"Error Parsing Camera\n");
         }
 
-        if(!LoadJSONMaterials(v, m_materials))
+        if (!LoadJSONMaterials(v, m_materials))
         {
             OutputDebugString(L"Error Parsing Materials\n");
         }
 
-        if(!LoadJSONPrimitives(v, m_primitives, m_materials))
+        if (!LoadJSONPrimitives(v, m_primitives, m_materials))
         {
             OutputDebugString(L"Error Parsing Primitives\n");
         }
 
-        if(!LoadJSONLights(v, m_lights))
+        if (!LoadJSONLights(v, m_lights))
         {
             OutputDebugString(L"Error Parsing Lights\n");
         }
@@ -538,12 +538,12 @@ namespace DXRPhotonMapper
         std::map<std::string, tinygltf::BufferView>::const_iterator it(m_gltfScene.bufferViews.begin());
         std::map<std::string, tinygltf::BufferView>::const_iterator itEnd(m_gltfScene.bufferViews.end());
 
-        for (; it != itEnd; it++) 
+        for (; it != itEnd; it++)
         {
             const std::string key = it->first;
             const tinygltf::BufferView &bufferView = it->second;
 
-            if (bufferView.target == 0) 
+            if (bufferView.target == 0)
             {
                 continue; // Unsupported bufferView.
             }
@@ -574,7 +574,7 @@ namespace DXRPhotonMapper
     {
         // 1.Read Data from file
         std::ifstream file(fileName.c_str());
-        if (!file) 
+        if (!file)
         {
             OutputDebugString(L"Failed to open file\n");
             return false;
@@ -584,7 +584,7 @@ namespace DXRPhotonMapper
         const size_t sz = static_cast<size_t>(file.tellg());
         std::vector<char> buf(sz);
 
-        if (sz == 0) 
+        if (sz == 0)
         {
             OutputDebugString(L"Empty JSON file\n");
             return false;
@@ -610,23 +610,23 @@ namespace DXRPhotonMapper
         // Load the GLTF file
         const bool ret = [&]
         {
-            if (ext.compare("glb") == 0) 
+            if (ext.compare("glb") == 0)
             {
                 // assume binary glTF.
                 return loader.LoadBinaryFromFile(&m_gltfScene, &err, fileName.c_str());
-            } 
-            else 
+            }
+            else
             {
                 // assume ascii glTF.
                 return loader.LoadASCIIFromFile(&m_gltfScene, &err, fileName.c_str());
             }
         }();
 
-        if (!err.empty()) 
+        if (!err.empty())
         {
         }
 
-        if (!ret) 
+        if (!ret)
         {
 
             OutputDebugString(L"Failed to parse glTF\n");
@@ -645,5 +645,5 @@ namespace DXRPhotonMapper
         return true;
     }
 
-    
+
 }

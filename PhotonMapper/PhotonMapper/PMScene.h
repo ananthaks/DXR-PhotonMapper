@@ -7,7 +7,7 @@
 
 namespace DXRPhotonMapper
 {
-    typedef unsigned char ByteBuffer; 
+    typedef unsigned char ByteBuffer;
 
     struct Geometry
     {
@@ -126,7 +126,7 @@ namespace DXRPhotonMapper
         UINT m_height;
     };
 
-    typedef struct 
+    typedef struct
     {
         const ByteBuffer* m_bufferStart;
         std::size_t m_length;
@@ -135,19 +135,17 @@ namespace DXRPhotonMapper
 
     class PMScene
     {
-    private:
 
+    public:
         Camera m_camera = {};
         std::array<UINT, 2> m_screenSize;
-
-
-	    std::vector<Geometry> m_sceneGeoms;
-	    std::vector<Primitive> m_primitives;
-	    std::vector<Material> m_materials;
-	    std::vector<Light> m_lights;
+        std::vector<Geometry> m_sceneGeoms;
+        std::vector<Primitive> m_primitives;
+        std::vector<Material> m_materials;
+        std::vector<Light> m_lights;
 
         std::map<std::string, BufferHolder> m_gltfBufferHolders;
-        
+
     private:
 
         bool LoadPicoScene(const char *str, unsigned int length);
@@ -168,12 +166,12 @@ namespace DXRPhotonMapper
         //------------------------------------------------------
         // LoadGLTFScene
         //------------------------------------------------------
-	    bool LoadGLTFScene(const std::string& fileName);
+        bool LoadGLTFScene(const std::string& fileName);
 
         //------------------------------------------------------
         // LoadJSONScene
         //------------------------------------------------------
-	    bool LoadJSONScene(const std::string& fileName);
+        bool LoadJSONScene(const std::string& fileName);
     };
 
 }
