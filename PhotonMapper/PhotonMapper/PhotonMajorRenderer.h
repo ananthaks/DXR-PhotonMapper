@@ -35,7 +35,9 @@ public:
     virtual void OnRender();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual void OnDestroy();
-    virtual IDXGISwapChain* GetSwapchain() { return m_deviceResources->GetSwapChain(); }
+    virtual IDXGISwapChain* GetSwapchain() {
+        return m_deviceResources->GetSwapChain();
+    }
 
 private:
     static const UINT FrameCount = 3;
@@ -90,9 +92,9 @@ private:
     // Root signatures for the first pass
     ComPtr<ID3D12RootSignature> m_firstPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_firstPassLocalRootSignature;
-	
-	// Root signatures for the second pass
-	ComPtr<ID3D12RootSignature> m_secondPassGlobalRootSignature;
+
+    // Root signatures for the second pass
+    ComPtr<ID3D12RootSignature> m_secondPassGlobalRootSignature;
     ComPtr<ID3D12RootSignature> m_secondPassLocalRootSignature;
 
     // Root signatures for the second pass
@@ -164,7 +166,7 @@ private:
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
 
     // Primitive Acceeleration structures
-    
+
     ComPtr<ID3D12Resource> m_geoTLAS;
 
 
@@ -181,23 +183,23 @@ private:
     static const wchar_t* c_closestHitShaderName;
     static const wchar_t* c_missShaderName;
 
-	struct ShaderTableRes
-	{
-		ComPtr<ID3D12Resource> m_missShaderTable;
-		ComPtr<ID3D12Resource> m_hitGroupShaderTable;
-		ComPtr<ID3D12Resource> m_rayGenShaderTable;
-	};
+    struct ShaderTableRes
+    {
+        ComPtr<ID3D12Resource> m_missShaderTable;
+        ComPtr<ID3D12Resource> m_hitGroupShaderTable;
+        ComPtr<ID3D12Resource> m_rayGenShaderTable;
+    };
 
-	ShaderTableRes m_prePassShaderTableRes;
-	ShaderTableRes m_firstPassShaderTableRes;
-	ShaderTableRes m_secondPassShaderTableRes;
-	ShaderTableRes m_thirdPassShaderTableRes;
+    ShaderTableRes m_prePassShaderTableRes;
+    ShaderTableRes m_firstPassShaderTableRes;
+    ShaderTableRes m_secondPassShaderTableRes;
+    ShaderTableRes m_thirdPassShaderTableRes;
 
     // Application state
     RaytracingAPI m_raytracingAPI;
     bool m_forceComputeFallback;
-	bool m_calculatePhotonMap;
-	bool m_clearStagingBuffers;
+    bool m_calculatePhotonMap;
+    bool m_clearStagingBuffers;
     StepTimer m_timer;
     float m_curRotationAngleRad;
     XMVECTOR m_eye;
@@ -239,7 +241,7 @@ private:
     void CreateRaytracingOutputResource();
     void CreateStagingRenderTargetResource();
     void CreateGBuffers();
-    
+
     void BuildGeometry();
 
     void GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Vertex>& vertices);

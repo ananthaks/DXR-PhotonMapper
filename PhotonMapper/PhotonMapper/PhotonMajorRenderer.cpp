@@ -2430,8 +2430,8 @@ void PhotonMajorRenderer::CalculateFrameStats()
         }
         windowText << setprecision(2) << fixed
             << L"    fps: " << fps << L"     ~Million Primary Rays/s: " << MRaysPerSecond
-            << L"    GPU[" << m_deviceResources->GetAdapterID() << L"]: " << m_deviceResources->GetAdapterDescription();
-
+            << L"    GPU[" << m_deviceResources->GetAdapterID() << L"]: " << m_deviceResources->GetAdapterDescription()
+            << L"    # Photons " << NumPhotons;
         SetCustomWindowText(windowText.str().c_str());
     }
 }
