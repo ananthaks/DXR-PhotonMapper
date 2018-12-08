@@ -1207,7 +1207,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 		XMVECTOR tempAt = 0.1f * XMVector3Normalize(m_at - m_eye);
         XMMATRIX translate = XMMatrixTranslation(XMVectorGetX(tempAt), XMVectorGetY(tempAt), XMVectorGetZ(tempAt));
         m_eye = XMVector3Transform(m_eye, translate);
-        m_up = XMVector3Transform(m_up, translate);
+        //m_up = XMVector3Transform(m_up, translate);
         m_at = XMVector3Transform(m_at, translate);
         //UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1219,7 +1219,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 		XMVECTOR tempAt = -0.1f * XMVector3Normalize(m_at - m_eye);
 		XMMATRIX translate = XMMatrixTranslation(XMVectorGetX(tempAt), XMVectorGetY(tempAt), XMVectorGetZ(tempAt));
         m_eye = XMVector3Transform(m_eye, translate);
-        m_up = XMVector3Transform(m_up, translate);
+        //m_up = XMVector3Transform(m_up, translate);
         m_at = XMVector3Transform(m_at, translate);
         //UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1228,7 +1228,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 
     case 'Q':
     {
-		XMVECTOR tempUp = 0.1f * m_up;
+		XMVECTOR tempUp = -0.1f * m_up;
         XMMATRIX translate = XMMatrixTranslation(XMVectorGetX(tempUp), XMVectorGetY(tempUp), XMVectorGetZ(tempUp));
         m_eye = XMVector3Transform(m_eye, translate);
         //m_up = XMVector3Transform(m_up, translate);
@@ -1240,7 +1240,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 
     case 'E':
     {
-		XMVECTOR tempUp = -0.1f * m_up;
+		XMVECTOR tempUp = 0.1f * m_up;
 		XMMATRIX translate = XMMatrixTranslation(XMVectorGetX(tempUp), XMVectorGetY(tempUp), XMVectorGetZ(tempUp));
         m_eye = XMVector3Transform(m_eye, translate);
         //m_up = XMVector3Transform(m_up, translate);
@@ -1285,9 +1285,10 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
         ref = ref + eye;
         RecomputeAttributes();*/
 
-        XMVECTOR tempAt = XMVector3Normalize(m_at - m_eye);
+        XMVECTOR tempAt = m_at - m_eye;
         tempAt = XMVector3Transform(tempAt, rotate);
         m_at = tempAt + m_eye;
+		m_up = XMVector3Transform(m_up, rotate);
 
         //UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1306,8 +1307,9 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
         RecomputeAttributes();*/
 
         XMVECTOR tempAt = m_at - m_eye;
-        tempAt = XMVector3Transform(tempAt, rotate);
+		tempAt = XMVector3Transform(tempAt, rotate);
         m_at = tempAt + m_eye;
+		m_up = XMVector3Transform(m_up, rotate);
 
         //UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1315,28 +1317,6 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
     break;
 
 	case '&': // Up arrow
-	{
-		//XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(-3));
-		XMVECTOR tempAt = XMVector3Normalize(m_at - m_eye);
-		XMVECTOR tempRight = XMVector3Normalize(XMVector3Cross(tempAt, m_up));
-		XMMATRIX rotate = XMMatrixRotationAxis(tempRight, XMConvertToRadians(3));
-
-		/*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
-		ref = ref - eye;
-		ref = glm::vec3(rotation * glm::vec4(ref, 1));
-		ref = ref + eye;
-		RecomputeAttributes();*/
-
-		tempAt = m_at - m_eye;
-		tempAt = XMVector3Transform(tempAt, rotate);
-		m_at = tempAt + m_eye;
-
-		//UpdateCameraMatrices();
-		cameraNeedsUpdate = true;
-	}
-	break;
-
-	case '(': // Down arrow
 	{
 		//XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(-3));
 		XMVECTOR tempAt = XMVector3Normalize(m_at - m_eye);
@@ -1352,6 +1332,30 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 		tempAt = m_at - m_eye;
 		tempAt = XMVector3Transform(tempAt, rotate);
 		m_at = tempAt + m_eye;
+		m_up = XMVector3Transform(m_up, rotate);
+
+		//UpdateCameraMatrices();
+		cameraNeedsUpdate = true;
+	}
+	break;
+
+	case '(': // Down arrow
+	{
+		//XMMATRIX rotate = XMMatrixRotationY(XMConvertToRadians(-3));
+		XMVECTOR tempAt = XMVector3Normalize(m_at - m_eye);
+		XMVECTOR tempRight = XMVector3Normalize(XMVector3Cross(tempAt, m_up));
+		XMMATRIX rotate = XMMatrixRotationAxis(tempRight, XMConvertToRadians(3));
+
+		/*glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), deg, up);
+		ref = ref - eye;
+		ref = glm::vec3(rotation * glm::vec4(ref, 1));
+		ref = ref + eye;
+		RecomputeAttributes();*/
+
+		tempAt = m_at - m_eye;
+		tempAt = XMVector3Transform(tempAt, rotate);
+		m_at = tempAt + m_eye;
+		m_up = XMVector3Transform(m_up, rotate);
 
 		//UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1370,7 +1374,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 		ref = ref + eye;
 		RecomputeAttributes();*/
 
-		m_up = XMVector3Transform(m_up, rotate);
+		m_up = XMVector3Normalize(XMVector3Transform(m_up, rotate));
 
 		//UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
@@ -1389,7 +1393,7 @@ void PhotonMapperRenderer::OnKeyDown(UINT8 key)
 		ref = ref + eye;
 		RecomputeAttributes();*/
 
-		m_up = XMVector3Transform(m_up, rotate);
+		m_up = XMVector3Normalize(XMVector3Transform(m_up, rotate));
 
 		//UpdateCameraMatrices();
 		cameraNeedsUpdate = true;
