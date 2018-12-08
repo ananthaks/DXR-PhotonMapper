@@ -14,8 +14,8 @@
 #include "PhotonMajorRenderer.h"
 #include "PMScene.h"
 
-//#define USE_PHOTON_MAJOR_RENDERER
-#define USE_PIXEL_MAJOR_RENDERER
+#define USE_PHOTON_MAJOR_RENDERER
+//#define USE_PIXEL_MAJOR_RENDERER
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720

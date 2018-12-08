@@ -850,8 +850,9 @@ void PhotonMajorRenderer::CreateDescriptorHeap()
     D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
     // Allocate a heap for 5 descriptors:
     // 2 - vertex and index buffer SRVs
+    // 1 - constant buffer views for scene buffer info
     // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 4 + NumGBuffers + NumRenderTargets + NumStagingBuffers;
+    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers + NumRenderTargets + NumStagingBuffers;
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;

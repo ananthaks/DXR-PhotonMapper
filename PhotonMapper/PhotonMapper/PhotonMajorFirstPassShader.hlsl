@@ -26,11 +26,9 @@ StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 //ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 //ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
-
 ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
-
 
 
 // Load three 16 bit indices from a byte addressed buffer.
@@ -423,6 +421,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     }
 
     float3 hitPosition = HitWorldPosition();
+    uint instanceId = InstanceID();
 
     // Get the base index of the triangle's first 16 bit index.
     uint indexSizeInBytes = 2;
@@ -430,10 +429,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
     uint baseIndex = PrimitiveIndex() * triangleIndexStride;
 
-    uint geometryOffset = 0;
+    uint geometryOffset = g_geomIndex[instanceId].vbIndex;
 
     // Load up 3 16 bit indices for the triangle.
-    const uint3 indices = Load3x16BitIndices(0, baseIndex);
+    const uint3 indices = Load3x16BitIndices(geometryOffset, baseIndex);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexNormals[3] = { 
