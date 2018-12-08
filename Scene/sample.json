@@ -16,7 +16,7 @@
       "transform": {
         "translate": [ 5, 0, 0 ],
         "rotate": [ 0, -30, 0 ],
-        "scale": [ 2, 2, 1 ]
+        "scale": [ 1, 1, 1 ]
       }
     },
     {
@@ -26,7 +26,17 @@
       "transform": {
         "translate": [ -5, 0, 0 ],
         "rotate": [ 0, -30, 0 ],
-        "scale": [ 2, 2, 1 ]
+        "scale": [ 1, 1, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "floor",
+      "material": "cloth",
+      "transform": {
+        "translate": [ 0, -3, 0 ],
+        "rotate": [ 90, 0, 0 ],
+        "scale": [ 10, 10, 1 ]
       }
     }
   ],
