@@ -848,11 +848,13 @@ void PhotonMajorRenderer::CreateDescriptorHeap()
     auto device = m_deviceResources->GetD3DDevice();
 
     D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
-    // Allocate a heap for 5 descriptors:
-    // 2 - vertex and index buffer SRVs
-    // 1 - constant buffer views for scene buffer info
-    // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-    descriptorHeapDesc.NumDescriptors = 5 + NumGBuffers + NumRenderTargets + NumStagingBuffers;
+    // Allocate a heap for descriptors:
+    // n - vertex SRVs
+    // n - index SRVs
+    // n - constant buffer views for scene buffer info
+    // n - bottom level acceleration structure fallback wrapped pointer UAVs
+    // n - top level acceleration structure fallback wrapped pointer UAVs
+    descriptorHeapDesc.NumDescriptors = NumGBuffers + NumRenderTargets + NumStagingBuffers + UINT(m_scene.m_primitives.size() * 5);
     descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descriptorHeapDesc.NodeMask = 0;
@@ -1108,6 +1110,13 @@ void PhotonMajorRenderer::BuildGeometryBuffers()
         geoBuffer.vertexNumElements = vertices.size();
         geoBuffer.vertexElementSize = sizeof(vertices[0]);
 
+        const XMVECTOR translationVec = XMLoadFloat3(&prim.m_translate);
+        XMMATRIX transMat = XMMatrixTranslationFromVector(translationVec);
+        XMMATRIX rotMat = XMMatrixRotationRollPitchYaw(XMConvertToRadians(prim.m_rotate.x), XMConvertToRadians(prim.m_rotate.y), XMConvertToRadians(prim.m_rotate.z));
+        XMMATRIX scaleMat = XMMatrixScaling(prim.m_scale.x, prim.m_scale.y, prim.m_scale.z);
+
+        geoBuffer.transformationMatrix = scaleMat * rotMat * transMat;
+        
         m_geometryBuffers.push_back(geoBuffer);
     }
 
@@ -1270,7 +1279,7 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
         for (auto& geoBuffer : m_geometryBuffers)
         {
             D3D12_RAYTRACING_FALLBACK_INSTANCE_DESC instanceDesc = {};
-            instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+            XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), geoBuffer.transformationMatrix);
             instanceDesc.InstanceMask = 0xFF;
             instanceDesc.InstanceID = instanceId++;
             UINT numBufferElements = static_cast<UINT>(geoBuffer.bottomLevelAccStructPreBuildInfo.ResultDataMaxSizeInBytes) / sizeof(UINT32);
@@ -1285,7 +1294,7 @@ void PhotonMajorRenderer::BuildGeometryAccelerationStructures()
         for (auto& geoBuffer : m_geometryBuffers)
         {
             D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-            instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
+            XMStoreFloat3x4(reinterpret_cast<XMFLOAT3X4*>(instanceDesc.Transform), geoBuffer.transformationMatrix);
             instanceDesc.InstanceMask = 0xFF;
             instanceDesc.InstanceID = instanceId++;
             instanceDesc.AccelerationStructure = geoBuffer.bottomLevelAccStructure->GetGPUVirtualAddress();

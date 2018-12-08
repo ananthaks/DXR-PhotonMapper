@@ -11,12 +11,22 @@
   "primitives": [
     {
       "shape": "Cube",
-      "name": "floor",
+      "name": "cube1",
       "material": "cloth",
       "transform": {
-        "translate": [ 0, -1.9, 0 ],
-        "rotate": [ -90, 0, 0 ],
-        "scale": [ 20, 20, 1 ]
+        "translate": [ 5, 0, 0 ],
+        "rotate": [ 0, -30, 0 ],
+        "scale": [ 2, 2, 1 ]
+      }
+    },
+    {
+      "shape": "Cube",
+      "name": "cube2",
+      "material": "cloth",
+      "transform": {
+        "translate": [ -5, 0, 0 ],
+        "rotate": [ 0, -30, 0 ],
+        "scale": [ 2, 2, 1 ]
       }
     }
   ],

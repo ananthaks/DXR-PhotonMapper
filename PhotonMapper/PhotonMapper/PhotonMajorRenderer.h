@@ -143,6 +143,9 @@ private:
         D3DBuffer indexBuffer;
         D3DBuffer vertexBuffer;
 
+        // 3 X 4 transform matrix
+        XMMATRIX transformationMatrix;
+
         std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometryDescs;
 
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelAccStructDesc;
