@@ -1,0 +1,120 @@
+{
+  "camera": {
+    "ref": [ 0, 2.5, 0 ],
+    "eye": [ 0, 6.5, -30 ],
+    "worldUp": [ 0, 1, 0 ],
+    "fov": 19.5,
+    "width": 512,
+    "height": 512
+  },
+
+  "primitives": [
+    {
+      "shape": "Cube",
+      "name": "cube1",
+      "material": "matteYellow",
+      "transform": {
+        "translate": [ 0, 0, 0 ],
+        "rotate": [ 0, -30, 0 ],
+        "scale": [ 1, 1, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "floor",
+      "material": "matteWhite",
+      "transform": {
+        "translate": [ 0, -4, 0 ],
+        "rotate": [ 90, 0, 0 ],
+        "scale": [ 10, 10, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "leftWall",
+      "material": "matteRed",
+      "transform": {
+        "translate": [ 5, 0, 0 ],
+        "rotate": [ 0, 90, 0 ],
+        "scale": [ 10, 8, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "rightWall",
+      "material": "matteGreen",
+      "transform": {
+        "translate": [ -5, 0, 0 ],
+        "rotate": [ 0, -90, 0 ],
+        "scale": [ 10, 8, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "backWall",
+      "material": "matteWhite",
+      "transform": {
+        "translate": [ 0, 0, 5 ],
+        "rotate": [ 0, 0, 0 ],
+        "scale": [ 10, 8, 1 ]
+      }
+    },
+    {
+      "shape": "SquarePlane",
+      "name": "ceiling",
+      "material": "matteWhite",
+      "transform": {
+        "translate": [ 0, 4, 0 ],
+        "rotate": [ -90, 0, 0 ],
+        "scale": [ 10, 10, 1 ]
+      }
+    }
+
+  ],
+
+  "lights": [
+
+    {
+      "name": "Light Source1",
+      "type": "PointLight",
+      "lightColor": [ 204, 176, 255 ],
+      "intensity": 1.0,
+      "transform": {
+        "translate": [ 3, 7.45, -20 ],
+        "rotate": [ 60, 0, 0 ],
+        "scale": [ 3, 3, 1 ]
+      },
+      "isDelta": false,
+      "twoSided": true,
+      "dropOff" : 5.0
+    }
+  ],
+
+  "materials": [
+
+    {
+      "type": "MatteMaterial",
+      "name": "matteWhite",
+      "albedo": [ 0.85, 0.81, 0.78 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteRed",
+      "albedo": [ 1.0, 0.0, 0.0 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteGreen",
+      "albedo": [ 0.0, 1.0, 0.0 ],
+      "sigma": 0
+    },
+    {
+      "type": "MatteMaterial",
+      "name": "matteYellow",
+      "albedo": [ 1.0, 1.0, 0.0 ],
+      "sigma": 0
+    }
+  ]
+}
