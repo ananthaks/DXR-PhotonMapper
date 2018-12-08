@@ -141,7 +141,7 @@ static const float PI = 3.1415926535897932384626422832795028841971f;
 static const float INV_PI = 0.318309886f;
 static const float TWO_PI = 6.2831853071795864769252867665590057683943f;
 static const float SQRT_OF_ONE_THIRD = 0.5773502691896257645091487805019574556476f;
-static const float EPSILON = 0.0001f;
+static const float EPSILON = 0.01f;
 
 inline float3 SquareToSphereUniform(float2 samplePoint)
 {

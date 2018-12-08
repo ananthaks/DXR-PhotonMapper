@@ -509,9 +509,6 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 
     // Debugging
 
-
-    uint radius = ceil(PIXEL_MAJOR_PHOTON_CLOSENESS);
-
     // Just do a default search all - This is for debugging only
 
     uint3 minCellSearch = uint3(0, 0, 0);//clamp(cellId - uint3(1, 1, 1), uint3(0, 0, 0), uint3(MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1, MAX_SCENE_SIZE - 1));
@@ -522,9 +519,9 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 
     
     //uint3 currCell = uint3(x, y, z);
-
-    int3 minLimit = int3(-1, -1, -1);
-    int3 maxLimit = int3(1, 1, 1);
+    uint radius = ceil(PIXEL_MAJOR_PHOTON_CLOSENESS / CELL_SIZE) + 1; //ceil(PIXEL_MAJOR_PHOTON_CLOSENESS) + 1;
+    int3 minLimit = int3(-radius, -radius, -radius);
+    int3 maxLimit = int3(radius, radius, radius);
 
     for (int x = minLimit.x; x < maxLimit.x; ++x)
     {
