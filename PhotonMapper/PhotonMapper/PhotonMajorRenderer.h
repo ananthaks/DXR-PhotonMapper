@@ -46,12 +46,11 @@ private:
     static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
 
-
     DXRPhotonMapper::PMScene m_scene;
-
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
+    static_assert(sizeof(SceneBufferDesc) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
 
     union AlignedSceneConstantBuffer
     {
@@ -61,6 +60,7 @@ private:
     AlignedSceneConstantBuffer*  m_mappedConstantData;
     ComPtr<ID3D12Resource>       m_perFrameConstants;
 
+    
     // Raytracing Fallback Layer (FL) attributes
     ComPtr<ID3D12RaytracingFallbackDevice> m_fallbackDevice;
     ComPtr<ID3D12RaytracingFallbackCommandList> m_fallbackCommandList;
@@ -129,7 +129,6 @@ private:
         UINT uavDescriptorHeapIndex;
     };
 
-
     std::vector<GBuffer> m_gBuffers;
     std::vector<GBuffer> m_stagingBuffers;
 
@@ -155,18 +154,21 @@ private:
     WRAPPED_GPU_POINTER m_fallBackPrimitiveTLAS;
     std::vector<GeometryBuffer> m_geometryBuffers;
 
+    struct SceneBufferDescHolder
+    {
+        SceneBufferDesc sceneBufferDesc;
+        D3DBuffer sceneBufferDescRes;
+    };
+    std::vector<SceneBufferDescHolder> m_sceneBufferDescriptors;
+
     D3DBuffer m_indexBuffer;
     D3DBuffer m_vertexBuffer;
-
-    D3DBuffer m_indexBufferFloor;
-    D3DBuffer m_vertexBufferFloor;
 
     // Acceleration structure
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
     ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
 
     // Primitive Acceeleration structures
-
     ComPtr<ID3D12Resource> m_geoTLAS;
 
 
@@ -217,6 +219,7 @@ private:
     void DoSecondPassPhotonMapping();
     void DoThirdPassPhotonMapping();
 
+    
     void CreateConstantBuffers();
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -247,6 +250,7 @@ private:
     void GetVerticesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Vertex>& vertices);
     void GetIndicesForPrimitiveType(DXRPhotonMapper::PrimitiveType type, std::vector<Index>& indices);
     void BuildGeometryBuffers();
+    void BuildGeometrySceneBufferDesc();
     void BuildGeometryAccelerationStructures();
 
     void BuildAccelerationStructures();

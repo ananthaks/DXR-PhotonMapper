@@ -168,6 +168,23 @@ inline void AllocateUploadBuffer(ID3D12Device* pDevice, void *pData, UINT64 data
     (*ppResource)->Unmap(0, nullptr);
 }
 
+inline void CreateUploadBuffer(ID3D12Device* pDevice, UINT64 datasize, ID3D12Resource **ppResource, const wchar_t* resourceName = nullptr)
+{
+    auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(datasize);
+    ThrowIfFailed(pDevice->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &bufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(ppResource)));
+    if (resourceName)
+    {
+        (*ppResource)->SetName(resourceName);
+    }
+}
+
 // Pretty-print a state object tree.
 inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
 {

@@ -6,10 +6,22 @@ namespace GlobalRootSignatureParams
     {
         OutputViewSlot = 0,
         AccelerationStructureSlot,
-        //GeomIndexSlot,
+        SceneConstantSlot,
+        VertexBuffersSlot,
+        Count 
+    };
+}
+
+namespace GlobalRootSignatureParamsWithPrimitives 
+{
+    enum Value 
+    {
+        OutputViewSlot = 0,
+        AccelerationStructureSlot,
         SceneConstantSlot,
         IndexBuffersSlot,
         VertexBuffersSlot,
+        GeomIndexSlot,
         Count 
     };
 }

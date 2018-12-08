@@ -23,14 +23,14 @@ ByteAddressBuffer Indices[] : register(t0, space1);
 StructuredBuffer<Vertex> Vertices[] : register(t0, space2);
 
 // Constant Buffer views
+//ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
+//ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
+
+
+ConstantBuffer<SceneBufferDesc> g_geomIndex[] : register(b0, space3);
 ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b0);
 ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b1);
 
-/*
-ConstantBuffer<UINT> g_geomIndex : register(b0);
-ConstantBuffer<SceneConstantBuffer> g_sceneCB : register(b1);
-ConstantBuffer<CubeConstantBuffer> g_cubeCB : register(b2);
-*/
 
 typedef BuiltInTriangleIntersectionAttributes MyAttributes;
 struct RayPayload

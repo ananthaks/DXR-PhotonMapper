@@ -218,6 +218,8 @@ void PhotonMajorRenderer::CreateDeviceDependentResources()
 
     // Build geometry to be used in the sample.
     BuildGeometryBuffers();
+
+    BuildGeometrySceneBufferDesc();
     //BuildGeometry();
 
     // Build raytracing acceleration structures from the generated geometry.
@@ -265,18 +267,19 @@ void PhotonMajorRenderer::CreatePrePassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
 
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-        rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-        rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
-        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
-        rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot].InitAsShaderResourceView(0);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_prePassGlobalRootSignature);
@@ -302,20 +305,19 @@ void PhotonMajorRenderer::CreateFirstPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
 
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-
-        rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-
-        rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
-        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
-        rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot].InitAsShaderResourceView(0);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_firstPassGlobalRootSignature);
@@ -341,19 +343,19 @@ void PhotonMajorRenderer::CreateSecondPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // constant buffer views
 
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-
-        rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-        rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
-        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
-        rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot].InitAsShaderResourceView(0);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_secondPassGlobalRootSignature);
@@ -379,19 +381,19 @@ void PhotonMajorRenderer::CreateThirdPassRootSignatures()
     {
         const UINT numPrimitives = UINT(m_scene.m_primitives.size());
 
-        CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
+        CD3DX12_DESCRIPTOR_RANGE ranges[4]; // Perfomance TIP: Order from most frequent to least frequent.
         ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, NumRenderTargets + NumStagingBuffers + NumGBuffers, 0);
         ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 1);  // index buffer array
         ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, numPrimitives, 0, 2);  // vertex buffer array
+        ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, numPrimitives, 0, 3);  // vertex buffer array
 
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-
-        rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-        rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
-        rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
-        //rootParameters[GlobalRootSignatureParams::GeomIndexSlot].InitAsConstantBufferView(0);
-        rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParamsWithPrimitives::Count];
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot].InitAsShaderResourceView(0);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot].InitAsDescriptorTable(1, &ranges[3]);
+        rootParameters[GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot].InitAsConstantBufferView(0);
 
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &m_thirdPassGlobalRootSignature);
@@ -1118,6 +1120,36 @@ void PhotonMajorRenderer::BuildGeometryBuffers()
     for (auto& geoBuffer : m_geometryBuffers)
     {
         UINT descriptorIndexVB = CreateBufferSRV(&geoBuffer.vertexBuffer, geoBuffer.vertexNumElements, geoBuffer.vertexElementSize);
+    }
+}
+
+void PhotonMajorRenderer::BuildGeometrySceneBufferDesc()
+{
+    auto device = m_deviceResources->GetD3DDevice();
+    for (size_t i = 0; i < m_scene.m_primitives.size(); ++i)
+    {
+        SceneBufferDescHolder sceneBufferDescHolder = {};
+        sceneBufferDescHolder.sceneBufferDesc.vbIndex = UINT(i);
+
+        const size_t bufferSize = (sizeof(SceneBufferDesc) + 255 ) & ~255;
+        CreateUploadBuffer(device, bufferSize, &sceneBufferDescHolder.sceneBufferDescRes.resource);
+
+        UINT descriptorIndex = AllocateDescriptor(&sceneBufferDescHolder.sceneBufferDescRes.cpuDescriptorHandle);
+        sceneBufferDescHolder.sceneBufferDescRes.gpuDescriptorHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, m_descriptorSize);
+
+        // Create a CBV descriptor
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = sceneBufferDescHolder.sceneBufferDescRes.resource->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = bufferSize;
+        device->CreateConstantBufferView(&cbvDesc, sceneBufferDescHolder.sceneBufferDescRes.cpuDescriptorHandle);
+
+        CD3DX12_RANGE readRange(0, 0);
+        SceneBufferDesc *mappedConstantData;
+        ThrowIfFailed(sceneBufferDescHolder.sceneBufferDescRes.resource->Map(0, &readRange, reinterpret_cast<void**>(&mappedConstantData)));
+        memcpy(mappedConstantData, &sceneBufferDescHolder.sceneBufferDesc, sizeof(SceneBufferDesc));
+        sceneBufferDescHolder.sceneBufferDescRes.resource->Unmap(0, &readRange);
+
+        m_sceneBufferDescriptors.push_back(sceneBufferDescHolder);
     }
 }
 
@@ -1969,9 +2001,10 @@ void PhotonMajorRenderer::DoPrePassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
     commandList->SetComputeRootSignature(m_prePassGlobalRootSignature.Get());
@@ -1979,20 +2012,20 @@ void PhotonMajorRenderer::DoPrePassPhotonMapping()
     // Copy the updated scene constant buffer to GPU.
     memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
     auto cbGpuAddress = m_perFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(m_mappedConstantData[0]);
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot, cbGpuAddress);
 
     // Bind the heaps, acceleration structure and dispatch rays.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackPrePassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
     {
         SetCommonPipelineState(commandList);
-        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
         DispatchRays(m_dxrCommandList.Get(), m_dxrPrePassStateObject.Get(), &dispatchDesc);
     }
 }
@@ -2024,9 +2057,10 @@ void PhotonMajorRenderer::DoFirstPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot, m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
     commandList->SetComputeRootSignature(m_firstPassGlobalRootSignature.Get());
@@ -2034,20 +2068,20 @@ void PhotonMajorRenderer::DoFirstPassPhotonMapping()
     // Copy the updated scene constant buffer to GPU.
     memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
     auto cbGpuAddress = m_perFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(m_mappedConstantData[0]);
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot, cbGpuAddress);
 
     // Bind the heaps, acceleration structure and dispatch rays.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackFirstPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
     {
         SetCommonPipelineState(commandList);
-        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
         DispatchRays(m_dxrCommandList.Get(), m_dxrFirstPassStateObject.Get(), &dispatchDesc);
     }
 }
@@ -2079,9 +2113,10 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
     commandList->SetComputeRootSignature(m_secondPassGlobalRootSignature.Get());
@@ -2089,20 +2124,20 @@ void PhotonMajorRenderer::DoSecondPassPhotonMapping()
     // Copy the updated scene constant buffer to GPU.
     memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
     auto cbGpuAddress = m_perFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(m_mappedConstantData[0]);
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot, cbGpuAddress);
 
     // Bind the heaps, acceleration structure and dispatch rays.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackSecondPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
     {
         SetCommonPipelineState(commandList);
-        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
         DispatchRays(m_dxrCommandList.Get(), m_dxrSecondPassStateObject.Get(), &dispatchDesc);
     }
 }
@@ -2134,9 +2169,10 @@ void PhotonMajorRenderer::DoThirdPassPhotonMapping()
     {
         descriptorSetCommandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
         // Set index and successive vertex buffer decriptor tables
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
-        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::IndexBuffersSlot, m_geometryBuffers[0].indexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::VertexBuffersSlot, m_geometryBuffers[0].vertexBuffer.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::GeomIndexSlot,  m_sceneBufferDescriptors[0].sceneBufferDescRes.gpuDescriptorHandle);
+        commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParamsWithPrimitives::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     };
 
     commandList->SetComputeRootSignature(m_thirdPassGlobalRootSignature.Get());
@@ -2144,20 +2180,20 @@ void PhotonMajorRenderer::DoThirdPassPhotonMapping()
     // Copy the updated scene constant buffer to GPU.
     memcpy(&m_mappedConstantData[frameIndex].constants, &m_sceneCB[frameIndex], sizeof(m_sceneCB[frameIndex]));
     auto cbGpuAddress = m_perFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(m_mappedConstantData[0]);
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParamsWithPrimitives::SceneConstantSlot, cbGpuAddress);
 
     // Bind the heaps, acceleration structure and dispatch rays.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
     if (m_raytracingAPI == RaytracingAPI::FallbackLayer)
     {
         SetCommonPipelineState(m_fallbackCommandList.Get());
-        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
+        m_fallbackCommandList->SetTopLevelAccelerationStructure(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_fallBackPrimitiveTLAS);
         DispatchRays(m_fallbackCommandList.Get(), m_fallbackThirdPassStateObject.Get(), &dispatchDesc);
     }
     else // DirectX Raytracing
     {
         SetCommonPipelineState(commandList);
-        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParamsWithPrimitives::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
         DispatchRays(m_dxrCommandList.Get(), m_dxrThirdPassStateObject.Get(), &dispatchDesc);
     }
 }
@@ -2307,8 +2343,6 @@ void PhotonMajorRenderer::ReleaseDeviceDependentResources()
     m_bottomLevelAccelerationStructure.Reset();
     m_topLevelAccelerationStructure.Reset();
 
-    m_indexBufferFloor.resource.Reset();
-    m_vertexBufferFloor.resource.Reset();
 }
 
 void PhotonMajorRenderer::RecreateD3D()

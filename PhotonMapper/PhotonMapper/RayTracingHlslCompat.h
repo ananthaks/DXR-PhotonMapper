@@ -62,6 +62,11 @@ struct SceneConstantBuffer
     XMVECTOR lightDiffuseColor;
 };
 
+struct SceneBufferDesc
+{
+    UINT vbIndex;
+};
+
 struct PixelMajorComputeConstantBuffer
 {
 	UINT param1;

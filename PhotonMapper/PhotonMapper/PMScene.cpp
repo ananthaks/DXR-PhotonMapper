@@ -163,6 +163,7 @@ namespace DXRPhotonMapper
         for (size_t i = 0; i < primitiveArray.size(); i++)
         {
             Primitive primitive = {};
+
             const picojson::object& primitiveObj = primitiveArray[i].get<picojson::object>();
 
             // Shape Type
@@ -217,6 +218,8 @@ namespace DXRPhotonMapper
                 primitive.m_rotate = { float(rotate[0]), float(rotate[1]), float(rotate[2]) };
                 primitive.m_scale = { float(scale[0]), float(scale[1]), float(scale[2]) };
             }
+
+            
             primitives.push_back(primitive);
         }
 
@@ -508,6 +511,15 @@ namespace DXRPhotonMapper
         {
             OutputDebugString(L"Error Parsing Lights\n");
         }
+
+
+        for(size_t i = 0; i < m_primitives.size(); ++i)
+        {
+            SceneBufferDesc sceneBufferDesc = {};
+            sceneBufferDesc.vbIndex = UINT(i);
+            m_sceneBufferDesc.push_back(sceneBufferDesc);
+        }
+
 
         /*
 

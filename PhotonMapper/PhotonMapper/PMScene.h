@@ -143,6 +143,7 @@ namespace DXRPhotonMapper
         std::vector<Primitive> m_primitives;
         std::vector<Material> m_materials;
         std::vector<Light> m_lights;
+        std::vector<SceneBufferDesc> m_sceneBufferDesc;
 
         std::map<std::string, BufferHolder> m_gltfBufferHolders;
 
