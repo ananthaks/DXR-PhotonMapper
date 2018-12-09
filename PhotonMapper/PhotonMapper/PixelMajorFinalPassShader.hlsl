@@ -452,7 +452,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 	uint cellIdY = floor(POS_TO_CELL_Y(intersectionPoint.y));
 	uint cellIdZ = floor(POS_TO_CELL_Z(intersectionPoint.z));
 
-	// Increment (with synchronization) the photon counter for that particular cell
+
 	uint3 cellId = uint3(cellIdX, cellIdY, cellIdZ);
 
     // Debugging
@@ -467,7 +467,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 
 	float4 color = float4(0.0, 0.0, 0.0, 0.0);
 	int numPhotons = 0;
-
+	/*
 	for (int x = minCellSearch.x; x < maxCellSearch.x; ++x)
 	{
 		for (int y = minCellSearch.y; y < maxCellSearch.y; ++y)
@@ -493,6 +493,7 @@ inline float4 PerformSorted(float3 intersectionPoint)
 			}
 		}
 	}
+	*/
 
 	if (numPhotons != 0)
 	{
@@ -524,54 +525,71 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 
     
     //uint3 currCell = uint3(x, y, z);
-    uint radius = ceil(PIXEL_MAJOR_PHOTON_CLOSENESS / CELL_SIZE) + 1; //ceil(PIXEL_MAJOR_PHOTON_CLOSENESS) + 1;
-    int3 minLimit = int3(-radius, -radius, -radius);
-    int3 maxLimit = int3(radius, radius, radius);
+	int radius = ceil(PIXEL_MAJOR_PHOTON_CLOSENESS / CELL_SIZE) + 1; //ceil(PIXEL_MAJOR_PHOTON_CLOSENESS) + 1;
+    //int3 minLimit = int3(-radius, -radius, -radius);
+    //int3 maxLimit = int3(radius, radius, radius);
 
-    for (int x = minLimit.x; x < maxLimit.x; ++x)
+    for (int z = -radius; z < radius; ++z)
     {
-        for (int y = minLimit.y; y < maxLimit.y; ++y)
+        for (int y = -radius; y < radius; ++y)
         {
-            for (int z = minLimit.z; z < maxLimit.z; ++z)
+            for (int x = -radius; x < radius; ++x)
             {
                 uint3 currCell = cellId + uint3(x, y, z);
 
                 currCell = clamp(currCell, uint3(0, 0, 0), uint3(NUM_CELLS_IN_X - 1, NUM_CELLS_IN_Y - 1, NUM_CELLS_IN_Z - 1));
 
-                uint photonStart = GPhotonScan[currCell];
-                uint photonCount = GPhotonCount[currCell];
+                //uint photonStart = GPhotonScan[currCell];
+                //uint photonCount = GPhotonCount[currCell];
+				int photon = GPhotonScan[currCell];
+				uint end = photon + GPhotonCount[currCell];
 
-                for (int photon = photonStart; photon < (photonCount + photonStart); ++photon)
+				// Debug
+				/*
+				if (GPhotonCount[currCell] > 2000) {
+					return float4(0, 1, 1, 1);
+				}
+				*/
+				
+                for (photon; photon < end; ++photon)
                 {
+					
                     uint3 index = Cell1DToPhotonID(photon);
-
+					
                      /*
                     // This is culling correct photons
                     // COuld be that the normal calculation is incorrect
-                    float3 base = GPhotonSortedPos[index].xyz - intersectionPoint;
+                    float3 base = normalize(GPhotonSortedPos[index].xyz - intersectionPoint); // connie added normalizing. Do we need it?
                     float dotProd = abs(dot(base, intersectionNormal));
 
                     if(dotProd > 0.01) 
                     {
                         continue;
                     }
-                    */
-
-                    float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
-
-                    if (dist < PIXEL_MAJOR_PHOTON_CLOSENESS)
+					*/
+					
+					float3 pos = GPhotonSortedPos[index].xyz;
+					float3 distVec = intersectionPoint - pos;
+					//float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
+					float dist = dot(distVec, distVec); //distance squared // distance(intersectionPoint, GPhotonSortedPos[index].xyz);
+					
+                    if (dist < PIXEL_MAJOR_PHOTON_CLOSENESS_SQUARED)
                     {
                         color += GPhotonSortedCol[index];
                         numPhotons++;
                     }
+					
                 }
+				
             }
         }
     }
 
     if (numPhotons != 0)
     {
+		//return color;
         return color / numPhotons;
+		//return float4(1.0, 1.0, 1.0,1.0);
     }
     return float4(0.0, 0.0, 0.0, 1.0);
 }

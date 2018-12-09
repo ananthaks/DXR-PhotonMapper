@@ -23,14 +23,17 @@
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
+
     // 1. Load Scene from file
     OutputDebugString(L"DXRPhotonMapper - Loading Scene File\n");
-    const std::string filePath = "E:/Git/DXR-PhotonMapper/Scene/CornellBox.json";
+    const std::string filePath = "E:/Git/DXR-PhotonMapper/Scene/sample.json";
 
     DXRPhotonMapper::PMScene scene(SCREEN_WIDTH, SCREEN_HEIGHT);
     scene.LoadJSONScene(filePath);
 
+
     // 2. Create a renderer
+
 #ifdef USE_PIXEL_MAJOR_RENDERER
     PixelMajorRenderer sample(scene, SCREEN_WIDTH, SCREEN_HEIGHT, L"DXR Pixel Major Renderer");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
