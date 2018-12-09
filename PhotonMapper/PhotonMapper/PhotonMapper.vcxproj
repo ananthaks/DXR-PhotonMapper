@@ -354,6 +354,7 @@ PrebuildCheck.bat</Command>
     <ClInclude Include="GeometryHelper.hlsli">
       <FileType>Document</FileType>
     </ClInclude>
+    <None Include="MaterialShaders.hlsli" />
     <None Include="packages.config" />
     <None Include="readme.md" />
   </ItemGroup>

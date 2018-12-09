@@ -52,6 +52,10 @@ typedef UINT16 Index;
 #define NUM_SAMPLES 5
 #define SEARCH_RADIUS 0.01f
 
+// Material Constants
+#define AMBIENT_LIGHT 0.2f
+
+
 struct SceneConstantBuffer
 {
     XMMATRIX projectionToWorld;

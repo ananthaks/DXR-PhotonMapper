@@ -112,6 +112,9 @@
   <ItemGroup>
     <None Include="readme.md" />
     <None Include="packages.config" />
+    <None Include="MaterialShaders.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PhotonMajorSecondPassShader.hlsl">

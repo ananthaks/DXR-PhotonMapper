@@ -15,7 +15,7 @@
       "material": "matteYellow",
       "transform": {
         "translate": [ 0, 0, 0 ],
-        "rotate": [ 0, 0, 0 ],
+        "rotate": [ 0, 30, 0 ],
         "scale": [ 1, 1, 1 ]
       }
     },
@@ -25,7 +25,7 @@
       "material": "matteWhite",
       "transform": {
         "translate": [ 0, -4, 0 ],
-        "rotate": [ 80, 0, 0 ],
+        "rotate": [ 90, 0, 0 ],
         "scale": [ 10, 10, 1 ]
       }
     },

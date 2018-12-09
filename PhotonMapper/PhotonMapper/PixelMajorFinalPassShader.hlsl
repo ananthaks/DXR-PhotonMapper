@@ -14,6 +14,7 @@
 
 #define HLSL
 #include "RaytracingHlslCompat.h"
+#include "MaterialShaders.hlsli"
 
 // Render Target for visualizing the photons - can be removed later on
 RWTexture2D<float4> RenderTarget : register(u0);
@@ -544,13 +545,17 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
                 {
                     uint3 index = Cell1DToPhotonID(photon);
 
+                     /*
+                    // This is culling correct photons
+                    // COuld be that the normal calculation is incorrect
                     float3 base = GPhotonSortedPos[index].xyz - intersectionPoint;
                     float dotProd = abs(dot(base, intersectionNormal));
 
-                    if(dotProd > 0.001) 
+                    if(dotProd > 0.01) 
                     {
                         continue;
                     }
+                    */
 
                     float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
 
@@ -603,10 +608,13 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
     // Transform normal from local space to transformed world space
-    float3 transformedNormal = mul(normalTransform, float4(triangleNormal, 0.0f));
+    float3 transformedNormal = normalize(mul(normalTransform, float4(triangleNormal, 0.0f)).xyz);
 
     payload.color = PerformSorted2(hitPosition, transformedNormal);
+    float lightIntensity = LambertShader(hitPosition, g_sceneCB.cameraPosition.xyz, transformedNormal);
 
+
+    payload.color *= lightIntensity;
 }
 
 [shader("miss")]
