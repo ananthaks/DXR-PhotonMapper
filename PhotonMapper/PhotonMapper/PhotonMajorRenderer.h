@@ -39,7 +39,7 @@ private:
     static const UINT NumRenderTargets = 1;
     static const UINT NumPhotons = 1000000;
 
-    
+    bool cameraNeedsUpdate = false;
 
     // We'll allocate space for several of these and they will need to be padded for alignment.
     static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
