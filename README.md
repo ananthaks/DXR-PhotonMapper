@@ -9,6 +9,9 @@ To implement an efficient Photon Mapper Renderer using DXR API.
 **Connie Chang**
 [LinkedIn](https://www.linkedin.com/in/conniechang44), [Demo Reel](https://www.vimeo.com/ConChang/DemoReel)
 
+**Pixel major rendering of 1 million photons
+![](Docs/images/1M_photons.png)
+
 # Camera Controls
 Translate along look vector - W and S  
 Translate along right vector - A and D  
