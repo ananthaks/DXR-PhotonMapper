@@ -443,6 +443,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     uint geometryOffset = c_bufferIndices[instanceId].vbIndex;
     uint materialIndex = c_bufferIndices[instanceId].materialIndex;
+	float4x4 normalTransform = c_bufferIndices[instanceId].normalTransformMat;
 
     // Load up 3 16 bit indices for the triangle.
     const uint3 indices = Load3x16BitIndices(geometryOffset, baseIndex);
@@ -458,6 +459,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // This is redundant and done for illustration purposes 
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
+	float3 transformedNormal = normalize(mul(float4(triangleNormal, 0.0f), normalTransform).xyz);
 
     // Retrieve corresponding vertex normals for the triangle vertices.
     float3 vertexColors[3] = { 
@@ -476,10 +478,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // Calculate tangent and bitangent of triangle using its points
     
     float3 tangent = normalize(Vertices[geometryOffset][indices[0]].position - hitPosition);
-    float3 bitangent = normalize(cross(tangent, triangleNormal));
+    float3 bitangent = normalize(cross(tangent, transformedNormal));
 
     // TODO make sure these are columns
-    float3x3 tangentToWorld = float3x3(tangent, bitangent, triangleNormal);
+    float3x3 tangentToWorld = float3x3(tangent, bitangent, transformedNormal);
     float3x3 worldToTangent = transpose(tangentToWorld);
 
     // BSDF. Assume everything is only Lambert
@@ -498,7 +500,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
         return;
     }
 
-    float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
+    float3 curr_throughput = f * AbsDot(transformedNormal, wiW) / pdf;
     float3 n_throughput = payload.throughput * curr_throughput;
 
     depth++;

@@ -626,10 +626,10 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
     // Transform normal from local space to transformed world space
-    float3 transformedNormal = normalize(mul(normalTransform, float4(triangleNormal, 0.0f)).xyz);
+    float3 transformedNormal = normalize(mul(float4(triangleNormal, 0.0f), normalTransform).xyz);
 
     payload.color = PerformSorted2(hitPosition, transformedNormal);
-    float lightIntensity = LambertShader(hitPosition, g_sceneCB.cameraPosition.xyz, transformedNormal);
+    float lightIntensity = clamp(LambertShader(hitPosition, g_sceneCB.cameraPosition.xyz, transformedNormal), 0, 1);
 
 
     payload.color *= lightIntensity;
