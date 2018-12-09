@@ -342,7 +342,7 @@ void MyRaygenShader()
     float4(0, 0, 0, 0),
     float4(0, 0, 0, 0),
     float3(0, 0, 0),
-    float3(0, 0, 0)};
+    rayDir};
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
     // Write the raytraced color to the output texture.
@@ -536,7 +536,7 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
                 uint photonStart = GPhotonScan[currCell];
                 uint photonCount = GPhotonCount[currCell];
 
-                for (int photon = photonStart; photon < (photonCount + photonStart); ++photon)
+				for (int photon = photonStart; photon < (photonCount + photonStart); ++photon)
                 {
                     uint3 index = Cell1DToPhotonID(photon);
 
@@ -548,9 +548,10 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
                         continue;
                     }
 
-                    float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
+                    //float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
+					float dist = dot(intersectionPoint - GPhotonSortedPos[index].xyz, intersectionPoint - GPhotonSortedPos[index].xyz);
 
-                    if (dist < PIXEL_MAJOR_PHOTON_CLOSENESS)
+                    if (dist < PIXEL_MAJOR_PHOTON_CLOSENESS_SQUARED)
                     {
                         color += GPhotonSortedCol[index];
                         numPhotons++;
@@ -562,7 +563,8 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 
     if (numPhotons != 0)
     {
-        return color / numPhotons;
+        //return color / numPhotons;
+		return float4(color.xyz / (PI * PIXEL_MAJOR_PHOTON_CLOSENESS_SQUARED), 1); // Divide by area
     }
     return float4(0.0, 0.0, 0.0, 1.0);
 }
@@ -570,6 +572,10 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
+	if (payload.extraInfo.x == -1) { // shadow ray
+		return;
+	}
+
     float3 hitPosition = HitWorldPosition();
 
     // Get the base index of the triangle's first 16 bit index.
@@ -595,6 +601,72 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     payload.color = PerformSorted2(hitPosition, triangleNormal);
 
+	// Calculate direct lighting for point light
+	float3 wiW = g_sceneCB.lightPosition.xyz - hitPosition;
+
+	float dist2 = dot(wiW, wiW);
+
+	// Shadow Ray.
+	RayDesc ray;
+	ray.Origin = hitPosition;
+	//ray.Direction = normalize(g_sceneCB.cameraPosition.xyz - hitPosition);
+	ray.Direction = wiW;
+	ray.TMin = 0.001;
+	ray.TMax = 0.99;
+
+	RayPayload shadowPayload =
+	{
+		float4(0, 0, 0, 0), // Hit Color
+		float4(0, 0, 0, 0), // Hit Location
+		float4(-1, 1, 0, 0), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
+		float3(0, 0, 0), // Throughput
+		float3(0, 0, 0), // Direction
+	};
+
+	// Perform Main photon tracing
+	TraceRay(Scene, RAY_FLAG_FORCE_OPAQUE, ~0, 0, 1, 0, ray, shadowPayload);
+
+	// Calculate direct lighting
+	if (shadowPayload.extraInfo.w == 1) {
+		float3 tangent = normalize(Vertices[indices[0]].position - hitPosition);
+		float3 bitangent = normalize(cross(tangent, triangleNormal));
+
+		// TODO make sure these are columns
+		float3x3 tangentToWorld = float3x3(tangent, bitangent, triangleNormal);
+		float3x3 worldToTangent = transpose(tangentToWorld);
+
+		wiW = normalize(wiW);
+
+		// BSDF. Assume everything is only Lambert
+		// TODO Add more material types
+		float2 randomSample = float2(rand_xorshift(), rand_xorshift());
+		float3 woW = -payload.direction;
+		float3 wo = normalize(mul(woW, worldToTangent));
+		float3 wi = normalize(mul(wiW, worldToTangent));;
+		float pdf;
+
+		// Retrieve corresponding vertex normals for the triangle vertices.
+		float3 vertexColors[3] = {
+			Vertices[indices[0]].color,
+			Vertices[indices[1]].color,
+			Vertices[indices[2]].color
+		};
+
+		// Compute the triangle's normal.
+		// This is redundant and done for illustration purposes 
+		// as all the per-vertex normals are the same and match triangle's normal in this sample. 
+		float3 triangleColor = HitAttribute(vertexColors, attr);
+
+		pdf = SameHemisphere(wo, wi) ? INV_PI * AbsCosTheta(wi) : 0;
+
+		float3 f = INV_PI * triangleColor;
+
+		float dot = AbsDot(wiW, triangleNormal);
+
+		payload.color += float4(f * dot * g_sceneCB.lightDiffuseColor * 10.f / dist2, 0);
+	}
+
+
 }
 
 [shader("miss")]
@@ -606,7 +678,7 @@ void MyMissShader(inout RayPayload payload)
 		float4 background = float4(1.0f, 1.0f, 1.0f, 1.0f);
 		payload.color = background;
 		payload.hitPosition = float4(0.0, 0.0, 0.0, 0.0);
-		payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		payload.extraInfo = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	}
 }
 

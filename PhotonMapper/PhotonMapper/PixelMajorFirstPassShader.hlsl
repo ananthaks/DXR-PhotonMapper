@@ -221,10 +221,71 @@ inline bool SameHemisphere(in float3 w, in float3 wp) {
 
 inline float AbsCosTheta(in float3 w) { return abs(w.z); }
 
+inline float CosTheta(in float3 w) { return w.z; }
+
 inline float AbsDot(in float3 a, in float3 b)
 {
     return abs(dot(a, b));
 }
+
+inline bool Refract(in float3 wi, in float3 n, float eta, out float3 wt) {
+	// Compute cos theta using Snell's law
+	float cosThetaI = dot(n, wi);
+	float sin2ThetaI = max(float(0), float(1 - cosThetaI * cosThetaI));
+	float sin2ThetaT = eta * eta * sin2ThetaI;
+
+	// Handle total internal reflection for transmission
+	if (sin2ThetaT >= 1) return false;
+	float cosThetaT = sqrt(1 - sin2ThetaT);
+	wt = eta * -wi + (eta * cosThetaI - cosThetaT) * float3(n);
+	return true;
+}
+
+inline float3 Faceforward(in float3 n, in float3 v) {
+	return (dot(n, v) < 0.f) ? -n : n;
+}
+
+inline float3 FresnelEvaluate(float cosThetaI)
+{
+	// Make sure cosThetaI is within legal values
+	cosThetaI = clamp(cosThetaI, -1.f, 1.f);
+
+	// Check if we are entering or exiting the material
+	// We need to swap eta is we are exiting
+	float temp_etaI = 1.0; // TODO hard-coded
+	float temp_etaT = 1.5; // TODO hard-coded
+	bool entering = cosThetaI > 0.f;
+	if (!entering) {
+		float temp = temp_etaI;
+		temp_etaI = temp_etaT;
+		temp_etaT = temp_etaI;
+		cosThetaI = abs(cosThetaI);
+	}
+
+	// Calculate sinTheta
+	// sinThetaI uses sin^2 = 1 - cos^2
+	// since we have cosThetaI
+	float sinThetaI = sqrt(max((float)0, 1 - cosThetaI * cosThetaI));
+	// sinThetaT uses Snell's law because we have etaI, etaT, and now sinThetaI
+	float sinThetaT = temp_etaI / temp_etaT * sinThetaI;
+
+	// If sinThetaT is greater than one,
+	// total internal reflection
+	// In terms of math, it is physically impossible
+	if (sinThetaT >= 1) {
+		return float3(1.f, 1.f, 1.f);
+	}
+
+	// Find cosThetaT using cos^2 = 1 - sin^2
+	float cosThetaT = sqrt(max((float)0, 1 - sinThetaT * sinThetaT));
+
+	// Use fresnel dielectric equations to get final value
+	float Rparl = ((temp_etaT * cosThetaI) - (temp_etaI * cosThetaT)) / ((temp_etaT * cosThetaI) + (temp_etaI * cosThetaT));
+	float Rperp = ((temp_etaI * cosThetaI) - (temp_etaT * cosThetaT)) / ((temp_etaI * cosThetaI) + (temp_etaT * cosThetaT));
+	float final = (Rparl * Rparl + Rperp * Rperp) / 2.f;
+	return float3(final, final, final);
+}
+
 
 inline float maxValue(in float3 w) {
     return max(w.x, max(w.y, w.z));
@@ -349,14 +410,14 @@ void MyRaygenShader()
 
     float numSamples = 1;//DispatchRaysDimensions().x * DispatchRaysDimensions().y;
 
-    float4 lightColor = g_sceneCB.lightDiffuseColor / numSamples;
+	float4 lightColor = g_sceneCB.lightDiffuseColor * 100 / PIXEL_MAJOR_NUMPHOTONS; // TODO divide by total photons
 
     // TODO max depth is 5. Do we want to change that?
     // Initialize the payload
     RayPayload payload = 
     { 
         //float4(0, 0, 0, 0), // Hit Color
-        lightColor, // Photon's starting color
+        lightColor,
         float4(0, 0, 0, 0), // Hit Location
         float4(1, 0, 0, 0), // Any extra information - Payload has to be 16 byte aligned
         float3(1, 1, 1), // Throughput
@@ -412,6 +473,29 @@ inline float3 Lambert_Sample_f(in float3 wo, out float3 wi, in float2 samplePt, 
     pdf = SameHemisphere(wo, wi) ? INV_PI * AbsCosTheta(wi) : 0;
 
     return INV_PI * albedo;
+}
+
+inline float3 SpecularBTDF_Sample_f(in float3 wo, out float3 wi, in float2 samplePt, out float pdf, in float3 albedo) {
+	// Hard-coded IoR
+	float eta = 1.0 / 1.5;
+
+	if (CosTheta(wo) <= 0) {
+		eta = 1.f / eta;
+	}
+
+	if (!Refract(wo, Faceforward(float3(0, 0, 1), wo), eta, wi)) {
+		return float3(0, 0, 0);
+	}
+
+	// Pdf of this wi is 1
+	pdf = 1.f;
+
+	// (1 - fresnel reflectance) because this is refraction
+	// The light transmitted is the portion not reflected
+	// Multiply that by scaling factor, T
+	// Divide by cos(wi) to cancel out Lambert in LTE
+	float3 ft = albedo * (float3(1.f, 1.f, 1.f) - FresnelEvaluate(CosTheta(wi)));
+	return ft / AbsCosTheta(wi);
 }
 
 
@@ -483,7 +567,16 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     float3 wi;
     float pdf;
 
-    float3 f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	// Hard code vertices that are diffuse or refractive
+	float3 f = float3(1, 1, 1);
+	if (indices[0] > 23) {
+		f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	}
+	else {
+		f = SpecularBTDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	}
+
+
     float3 wiW = normalize(mul(wi, tangentToWorld));
    
     if (pdf < EPSILON) 
@@ -493,6 +586,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
     float3 curr_throughput = f * AbsDot(triangleNormal, wiW) / pdf;
     float3 n_throughput = payload.throughput * curr_throughput;
+	float3 old_dir = -payload.direction;
 
     depth++;
     payload.color = float4(payload.color.xyz * curr_throughput, 1); // Photon's starting color
@@ -501,21 +595,25 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.throughput = n_throughput; // Throughput
     payload.direction = wiW; // Direction
 
-    // Store photon into the photon uav buffer
-    uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
-    GPhotonPos[g_index] = float4(hitPosition, 1);
-	GPhotonColor[g_index] = payload.color;
+	if (depth > 1) { // Do not store first bounce
+		// Store photon into the photon uav buffer
+		uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
+		GPhotonPos[g_index] = float4(hitPosition, 1);
+		GPhotonColor[g_index] = payload.color;
+		//GPhotonNormal[g_index] = float4(old_dir, 1); 
 
-    // Calculate the cell in which the hit belongs to 
-    uint cellIdX = floor(POS_TO_CELL_X(hitPosition.x));
-    uint cellIdY = floor(POS_TO_CELL_Y(hitPosition.y));
-    uint cellIdZ = floor(POS_TO_CELL_Z(hitPosition.z));
 
-    // Increment (with synchronization) the photon counter for that particular cell
-    uint3 cellId = uint3(cellIdX, cellIdY, cellIdZ);
-    uint increment = 1;
-    uint outVal;
-	InterlockedAdd(GPhotonCount[cellId], increment, outVal);
+		// Calculate the cell in which the hit belongs to 
+		uint cellIdX = floor(POS_TO_CELL_X(hitPosition.x));
+		uint cellIdY = floor(POS_TO_CELL_Y(hitPosition.y));
+		uint cellIdZ = floor(POS_TO_CELL_Z(hitPosition.z));
+
+		// Increment (with synchronization) the photon counter for that particular cell
+		uint3 cellId = uint3(cellIdX, cellIdY, cellIdZ);
+		uint increment = 1;
+		uint outVal;
+		InterlockedAdd(GPhotonCount[cellId], increment, outVal);
+	}
 
     // Russian Roulette 
     float throughput_max = maxValue(n_throughput);
