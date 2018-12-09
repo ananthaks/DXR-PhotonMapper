@@ -37,7 +37,7 @@ private:
     static const UINT NumPhotonCountBuffer = 1;
     static const UINT NumPhotonScanBuffer = 1;
     static const UINT NumPhotonTempIndexBuffer = 1;
-    static const UINT NumPhotons = 1000000;
+    static const UINT NumPhotons = 100000;
 
 	bool cameraNeedsUpdate = false;
 
