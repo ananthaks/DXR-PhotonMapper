@@ -1,0 +1,7 @@
+#ifndef GEOMETRYHELPER_H
+#define GEOMETRYHELPER_H
+
+
+
+
+#endif // ANALYTICPRIMITIVES_H

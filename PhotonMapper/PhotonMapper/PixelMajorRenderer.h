@@ -33,6 +33,7 @@ public:
 
 private:
     static const UINT FrameCount = 3;
+    static const UINT NumRenderTargets = 1;
     static const UINT NumGBuffers = 4;
     static const UINT NumPhotonCountBuffer = 1;
     static const UINT NumPhotonScanBuffer = 1;
@@ -64,7 +65,6 @@ private:
 
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackFirstPassStateObject;
     ComPtr<ID3D12RaytracingFallbackStateObject> m_fallbackSecondPassStateObject;
-    WRAPPED_GPU_POINTER m_fallbackTopLevelAccelerationStructurePointer;
 
     ComPtr<ID3D12StateObject> m_dxrFirstPassStateObject;
     ComPtr<ID3D12StateObject> m_dxrSecondPassStateObject;
@@ -103,16 +103,6 @@ private:
 	GBuffer m_photonScanBuffer;
 	GBuffer m_photonTempIndexBuffer;
 
-    D3DBuffer m_indexBuffer;
-    D3DBuffer m_vertexBuffer;
-
-    D3DBuffer m_indexBufferFloor;
-    D3DBuffer m_vertexBufferFloor;
-
-
-    // Acceleration structure
-    ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
-    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
 
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
@@ -184,8 +174,7 @@ private:
     void CreateRaytracingOutputResource();
     void CreateGBuffers();
 	void CreatePhotonCountBuffer(GBuffer& gBuffer);
-    void BuildGeometry();
-    void BuildAccelerationStructures();
+
     void BuildFirstPassShaderTables();
     void BuildSecondPassShaderTables();
     void SelectRaytracingAPI(RaytracingAPI type);
@@ -194,9 +183,6 @@ private:
 	void CopyUAVData(GBuffer& source, GBuffer& destination);
     void CopyGBUfferToBackBuffer(UINT gbufferIndex);
     void CalculateFrameStats();
-    UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
-    UINT CreateBufferSRV(D3DBuffer* buffer, UINT numElements, UINT elementSize);
-    WRAPPED_GPU_POINTER CreateFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
 
     // fence for exclusive scan
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;

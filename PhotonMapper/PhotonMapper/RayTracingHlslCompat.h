@@ -27,7 +27,7 @@ typedef UINT16 Index;
 #define MAX_SCENE_SIZE_HALF 8.0f
 #define MAX_SCENE_SIZE 2.0f * MAX_SCENE_SIZE_HALF
 
-#define CELL_SIZE 0.125f
+#define CELL_SIZE 0.25f
 
 #define PIXEL_MAJOR_PHOTON_CLOSENESS 0.2f
 #define PIXEL_MAJOR_PHOTON_CLOSENESS_SQUARED PIXEL_MAJOR_PHOTON_CLOSENESS * PIXEL_MAJOR_PHOTON_CLOSENESS
@@ -52,6 +52,10 @@ typedef UINT16 Index;
 // Photon Major
 #define NUM_SAMPLES 5
 #define SEARCH_RADIUS 0.01f
+
+// Material Constants
+#define AMBIENT_LIGHT 0.2f
+
 
 struct SceneConstantBuffer
 {
@@ -85,6 +89,7 @@ struct SceneBufferDesc
 {
     UINT vbIndex;
     UINT materialIndex;
+    XMMATRIX normalTransformMat;
 };
 
 struct MaterialDesc
