@@ -227,7 +227,7 @@ void PhotonBaseRenderer::BuildGeometryBuffers()
         XMMATRIX scaleMat = XMMatrixScaling(prim.m_scale.x, prim.m_scale.y, prim.m_scale.z);
 
         geoBuffer.transformationMatrix = scaleMat * rotMat * transMat;
-        geoBuffer.normalTransform = rotMat * scaleMat;
+        geoBuffer.normalTransform = rotMat;
 
 
         m_geometryBuffers.push_back(geoBuffer);
