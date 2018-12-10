@@ -540,13 +540,13 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
                 {
                     uint3 index = Cell1DToPhotonID(photon);
 
-                    float3 base = GPhotonSortedPos[index].xyz - intersectionPoint;
+                    /*float3 base = GPhotonSortedPos[index].xyz - intersectionPoint;
                     float dotProd = abs(dot(base, intersectionNormal));
 
                     if(dotProd > 0.001) 
                     {
                         continue;
-                    }
+                    }*/
 
                     //float dist = distance(intersectionPoint, GPhotonSortedPos[index].xyz);
 					float dist = dot(intersectionPoint - GPhotonSortedPos[index].xyz, intersectionPoint - GPhotonSortedPos[index].xyz);

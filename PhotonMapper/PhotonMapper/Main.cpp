@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     // 1. Load Scene from file
     OutputDebugString(L"DXRPhotonMapper - Loading Scene File\n");
-    const std::string filePath = "E:/Git/DXR-PhotonMapper/Scene/sample.json";
+    const std::string filePath = "C:/Users/SIG Admin/Desktop/Anantha/DXR-PhotonMapper/Scene/sample.json";
 
     DXRPhotonMapper::PMScene scene(SCREEN_WIDTH, SCREEN_HEIGHT);
     scene.LoadJSONScene(filePath);

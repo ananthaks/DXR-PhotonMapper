@@ -569,12 +569,12 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
 	// Hard code vertices that are diffuse or refractive
 	float3 f = float3(1, 1, 1);
-	if (indices[0] > 23) {
+	//if (indices[0] > 23) {
 		f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-	}
-	else {
-		f = SpecularBTDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-	}
+	//}
+	//else {
+	//	f = SpecularBTDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	//}
 
 
     float3 wiW = normalize(mul(wi, tangentToWorld));

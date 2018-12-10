@@ -1,0 +1,26 @@
+Photon Major FPS vs Num photon
+Num Photons      FPS
+1000	-  2400
+10000	-  20000
+100000	- 
+1000000	- 
+
+Pixel Major FPS vs Num Photons
+
+Num Photons      FPS
+1000	-  650
+10000	-  430
+100000	- 73
+1000000	- 10
+
+Pixel Major Naive FPS vs Num Photons
+
+Num Photons      FPS
+1000	-  65
+10000	-  10
+100000	- 
+1000000	- 
+
+
+Pixel Major FPFS vs Cell Size
+
