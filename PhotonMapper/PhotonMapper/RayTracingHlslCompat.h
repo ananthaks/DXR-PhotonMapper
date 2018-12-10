@@ -25,7 +25,7 @@ typedef UINT16 Index;
 
 #define PIXEL_MAJOR_NUMPHOTONS 1000000
 // Assumption : The scene bounds are considered as [-MAX_SCENE_SIZE_HALF, +MAX_SCENE_SIZE_HALF]
-#define MAX_SCENE_SIZE_HALF 8.0f
+#define MAX_SCENE_SIZE_HALF 16.0f
 #define MAX_SCENE_SIZE 2.0f * MAX_SCENE_SIZE_HALF
 
 #define CELL_SIZE 0.25f

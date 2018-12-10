@@ -498,6 +498,24 @@ inline float3 SpecularBTDF_Sample_f(in float3 wo, out float3 wi, in float2 sampl
 	return ft / AbsCosTheta(wi);
 }
 
+inline float3 SpecularBRDF_Sample_f(in float3 wo, out float3 wi, in float2 sample, out float pdf, in float3 albedo)
+{
+	// Since our local surface normal is (0, 0, 1)
+	// the reflection can be calculated by simply
+	// negating the x and y
+	wi = float3(-wo.x, -wo.y, wo.z);
+
+	// Pdf is 1 for this wi
+	pdf = 1.f;
+
+	//*sampledType = BxDFType::BSDF_SPECULAR;
+
+	// Calculate fresnel reflectance
+	// Multiply by scaling factor, R
+	// Divide by cos(wi) to cancel out Lambert term in LTE
+	return FresnelEvaluate(CosTheta(wi)) * albedo / AbsCosTheta(wi);
+}
+
 
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
@@ -569,12 +587,15 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 
 	// Hard code vertices that are diffuse or refractive
 	float3 f = float3(1, 1, 1);
-	//if (indices[0] > 23) {
+	if (indices[0] > 67) {
+		f = SpecularBRDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	}
+	else if (indices[0] < 24) {
+		f = SpecularBTDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
+	}
+	else {
 		f = Lambert_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-	//}
-	//else {
-	//	f = SpecularBTDF_Sample_f(wo, wi, randomSample, pdf, triangleColor);
-	//}
+	}
 
 
     float3 wiW = normalize(mul(wi, tangentToWorld));
@@ -595,7 +616,7 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     payload.throughput = n_throughput; // Throughput
     payload.direction = wiW; // Direction
 
-	if (depth > 1) { // Do not store first bounce
+	if (depth > 1 && indices[0] < 68 && indices[0] > 23) { // Do not store first bounce or specular
 		// Store photon into the photon uav buffer
 		uint3 g_index = uint3(DispatchRaysIndex().xy, depth - 1);
 		GPhotonPos[g_index] = float4(hitPosition, 1);

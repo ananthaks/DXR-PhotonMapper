@@ -569,10 +569,40 @@ inline float4 PerformSorted2(float3 intersectionPoint, float3 intersectionNormal
     return float4(0.0, 0.0, 0.0, 1.0);
 }
 
+inline float3 Reflect(in float3 woW, in float3 normal) {
+	return normalize(woW - ((2 * normal) * dot(woW, normal)));
+}
+
+
+// Scratchapixel
+inline float3 Refract(in float3 I, in float3 N)
+{
+	float cosi = clamp(-1, 1, dot(I, N));
+	float etai = 1, etat = 1.5;
+	float3 n = N;
+	if (cosi < 0) { 
+		cosi = -cosi; 
+	}
+	else { 
+		float temp = etai;
+		etai = etat;
+		etat = temp;
+		n = -N; 
+	}
+	float eta = etai / etat;
+	float k = 1 - eta * eta * (1 - cosi * cosi);
+	return k < 0 ? float3(0, 0, 0) : normalize(eta * I + (eta * cosi - sqrt(k)) * n);
+}
+
 [shader("closesthit")]
 void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 {
 	if (payload.extraInfo.x == -1) { // shadow ray
+		return;
+	}
+
+	int depth = payload.extraInfo.y;
+	if (depth >= MAX_RAY_RECURSION_DEPTH) {
 		return;
 	}
 
@@ -599,8 +629,72 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
     // as all the per-vertex normals are the same and match triangle's normal in this sample. 
     float3 triangleNormal = HitAttribute(vertexNormals, attr);
 
-    payload.color = PerformSorted2(hitPosition, triangleNormal);
+	// Retrieve corresponding vertex normals for the triangle vertices.
+	float3 vertexColors[3] = {
+		Vertices[indices[0]].color,
+		Vertices[indices[1]].color,
+		Vertices[indices[2]].color
+	};
 
+	// Compute the triangle's normal.
+	// This is redundant and done for illustration purposes 
+	// as all the per-vertex normals are the same and match triangle's normal in this sample. 
+	float3 triangleColor = HitAttribute(vertexColors, attr);
+
+	if (indices[0] < 24) { // Transmissive
+		
+		float3 wiW = Refract(payload.direction, triangleNormal);
+
+		//float3 wiW = refract(payload.direction, triangleNormal);
+		if (dot(wiW, wiW) == 0) {
+			return; // Internal reflection
+		}
+		RayDesc ray;
+		ray.Origin = hitPosition;
+		ray.Direction = wiW;
+		ray.TMin = 0.001;
+		ray.TMax = 1000;
+
+		RayPayload mirrorPayload =
+		{
+			float4(0, 0, 0, 0), // Hit Color
+			float4(0, 0, 0, 0), // Hit Location
+			float4(0, depth + 1, 0, 0), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
+			float3(0, 0, 0), // Throughput
+			wiW, // Direction
+		};
+
+		TraceRay(Scene, RAY_FLAG_FORCE_OPAQUE, ~0, 0, 1, 0, ray, mirrorPayload);
+		payload.color = float4(triangleColor, 1) * mirrorPayload.color;
+		
+	}
+	else if (indices[0] < 68) { // Not mirror
+		payload.color = PerformSorted2(hitPosition, triangleNormal);
+	}
+	else {
+		// Mirror ray trace
+		float3 wiW = Reflect(payload.direction, triangleNormal);
+
+		RayDesc ray;
+		ray.Origin = hitPosition;
+		ray.Direction = wiW;
+		ray.TMin = 0.001;
+		ray.TMax = 1000;
+
+		RayPayload mirrorPayload =
+		{
+			float4(0, 0, 0, 0), // Hit Color
+			float4(0, 0, 0, 0), // Hit Location
+			float4(0, depth + 1, 0, 0), // Any extra information - Payload has to be 16 byte aligned. // TODO Use -1 as flag that this is shadow ray
+			float3(0, 0, 0), // Throughput
+			wiW, // Direction
+		};
+
+		TraceRay(Scene, RAY_FLAG_FORCE_OPAQUE, ~0, 0, 1, 0, ray, mirrorPayload);
+		payload.color = float4(triangleColor, 1) * mirrorPayload.color;
+	}
+
+	// **********************************************************************
 	// Calculate direct lighting for point light
 	float3 wiW = g_sceneCB.lightPosition.xyz - hitPosition;
 
@@ -609,7 +703,6 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 	// Shadow Ray.
 	RayDesc ray;
 	ray.Origin = hitPosition;
-	//ray.Direction = normalize(g_sceneCB.cameraPosition.xyz - hitPosition);
 	ray.Direction = wiW;
 	ray.TMin = 0.001;
 	ray.TMax = 0.99;
@@ -644,18 +737,6 @@ void MyClosestHitShader(inout RayPayload payload, in MyAttributes attr)
 		float3 wo = normalize(mul(woW, worldToTangent));
 		float3 wi = normalize(mul(wiW, worldToTangent));;
 		float pdf;
-
-		// Retrieve corresponding vertex normals for the triangle vertices.
-		float3 vertexColors[3] = {
-			Vertices[indices[0]].color,
-			Vertices[indices[1]].color,
-			Vertices[indices[2]].color
-		};
-
-		// Compute the triangle's normal.
-		// This is redundant and done for illustration purposes 
-		// as all the per-vertex normals are the same and match triangle's normal in this sample. 
-		float3 triangleColor = HitAttribute(vertexColors, attr);
 
 		pdf = SameHemisphere(wo, wi) ? INV_PI * AbsCosTheta(wi) : 0;
 
