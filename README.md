@@ -23,7 +23,7 @@ We gratefully acknowledge the support of NVIDIA Corporation with the donation of
 
 ## Link to Presentation
 
-
+![Presentation](https://github.com/ananthaks/DXR-PhotonMapper/blob/master/Docs/FinalPresentation/DXR-PhotonMapper%20Final%20Presentation.pdf)
 
 ---
 
